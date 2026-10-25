@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Generate the bundled word lists in shared/dictionaries/.
 
-Output format: one entry per line, ``word<TAB>frequency`` where frequency is 1-255,
-sorted by frequency descending.
+Output format: one entry per line, ``word<TAB>frequency[<TAB>key]`` where frequency is 1-255 and
+key is the normalised lookup key (written only when it differs from the word); sorted by key in
+UTF-16 order with one entry per key, so the apps can load it without sorting.
 
 * en, ru  — top words from the ``wordfreq`` package (data: CC BY-SA 4.0).
 * uz_latn, uz_latn_2027, uz_cyrl — tools/uz_seed.txt merged with corpus frequencies from
@@ -196,15 +197,59 @@ def from_wordfreq(lang: str, pattern: re.Pattern[str]) -> list[Entry]:
     return entries
 
 
+APOSTROPHE_LIKE = set("'\u2018\u2019`" + MODIFIER_TURNED_COMMA + MODIFIER_APOSTROPHE)
+
+
+def normalize_key(word: str) -> str:
+    """Mirror of TextRules.normalizeKey (Kotlin/Swift): lower-case, apostrophes folded to ', ё → е."""
+    return "".join("'" if c in APOSTROPHE_LIKE else "е" if c == "ё" else c for c in word.lower())
+
+
+def latin_2027_key(word: str) -> str:
+    """Mirror of KeyNormalizer.LATIN_2027: the normalised key with oʻ gʻ sh ch spelled ö ğ ş ç."""
+    key = normalize_key(word)
+    out: list[str] = []
+    i = 0
+    while i < len(key):
+        c = key[i]
+        nxt = key[i + 1] if i + 1 < len(key) else ""
+        if c in "og" and nxt == "'":
+            out.append("ö" if c == "o" else "ğ")
+            i += 2
+        elif c in "sc" and nxt == "h":
+            out.append("ş" if c == "s" else "ç")
+            i += 2
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def utf16_order(key: str) -> bytes:
+    """Sort key matching String comparison in Kotlin and the UTF-16 key comparison in Swift."""
+    return key.encode("utf-16-be")
+
+
 def write(name: str, entries: list[Entry]) -> None:
-    merged: dict[str, Entry] = {}
+    """Writes `word<TAB>frequency[<TAB>key]` sorted by key, one entry per key.
+
+    The key column (the normalised lookup key) is present only when it differs from the word. Shipping
+    keys pre-sorted lets the apps load a dictionary without normalising and sorting 50 000 words on the
+    phone; tests on both platforms check the keys against the runtime normaliser.
+    """
+    to_key = latin_2027_key if name == "uz_latn_2027" else normalize_key
+    best: dict[str, tuple[Entry, str]] = {}
     for entry in entries:
-        existing = merged.get(entry.word.lower())
-        if existing is None or existing.freq < entry.freq:
-            merged[entry.word.lower()] = entry
-    ordered = sorted(merged.values(), key=lambda e: (-e.freq, e.word))
+        key = to_key(entry.word)
+        existing = best.get(key)
+        if existing is None or existing[0].freq < entry.freq:
+            best[key] = (entry, key)
+    ordered = sorted(best.values(), key=lambda item: utf16_order(item[1]))
+    lines = []
+    for entry, key in ordered:
+        lines.append(f"{entry.word}\t{entry.freq}\n" if key == entry.word else f"{entry.word}\t{entry.freq}\t{key}\n")
     path = OUT_DIR / f"{name}.txt"
-    path.write_text("".join(f"{e.word}\t{e.freq}\n" for e in ordered), encoding="utf-8")
+    path.write_text("".join(lines), encoding="utf-8")
     log.info("wrote %s (%d words)", path.relative_to(ROOT), len(ordered))
 
 

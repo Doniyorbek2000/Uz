@@ -69,29 +69,45 @@ class WordDictionary private constructor(
             return mask
         }
 
-        /** Parses `word<TAB>frequency` lines. */
+        /**
+         * Parses `word<TAB>frequency[<TAB>key]` lines. Bundled files carry their normalised keys and are
+         * already sorted by key, so loading is a single pass; any other input is normalised and sorted here.
+         */
         fun load(stream: InputStream, normalizer: KeyNormalizer = KeyNormalizer.DEFAULT): WordDictionary {
-            data class Row(val word: String, val key: String, val frequency: Int)
-
-            val rows = ArrayList<Row>(32_000)
-            BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).useLines { lines ->
+            val words = ArrayList<String>(52_000)
+            val keys = ArrayList<String>(52_000)
+            val frequencies = ArrayList<Int>(52_000)
+            var sorted = true
+            BufferedReader(InputStreamReader(stream, Charsets.UTF_8), 1 shl 16).useLines { lines ->
                 lines.forEach { line ->
                     if (line.isBlank()) return@forEach
                     val tab = line.indexOf('\t')
                     val word = if (tab < 0) line.trim() else line.substring(0, tab)
-                    val frequency = if (tab < 0) 1 else line.substring(tab + 1).trim().toIntOrNull() ?: 1
-                    if (word.isNotEmpty()) rows += Row(word, normalizer.normalize(word), frequency)
+                    if (word.isEmpty()) return@forEach
+                    val secondTab = if (tab < 0) -1 else line.indexOf('\t', tab + 1)
+                    val frequency = when {
+                        tab < 0 -> 1
+                        secondTab < 0 -> line.substring(tab + 1).trim().toIntOrNull() ?: 1
+                        else -> line.substring(tab + 1, secondTab).trim().toIntOrNull() ?: 1
+                    }
+                    val key = if (secondTab >= 0) line.substring(secondTab + 1).trim() else normalizer.normalize(word)
+                    if (sorted && keys.isNotEmpty() && keys[keys.size - 1] >= key) sorted = false
+                    words += word
+                    keys += key
+                    frequencies += frequency
                 }
             }
-            rows.sortWith(compareBy<Row> { it.key }.thenByDescending { it.frequency })
-            val deduplicated = ArrayList<Row>(rows.size)
-            for (row in rows) {
-                if (deduplicated.isEmpty() || deduplicated.last().key != row.key) deduplicated += row
+            if (sorted) return WordDictionary(words.toTypedArray(), keys.toTypedArray(), frequencies.toIntArray())
+
+            val order = words.indices.sortedWith(compareBy<Int> { keys[it] }.thenByDescending { frequencies[it] })
+            val kept = ArrayList<Int>(order.size)
+            for (index in order) {
+                if (kept.isEmpty() || keys[kept.last()] != keys[index]) kept += index
             }
             return WordDictionary(
-                Array(deduplicated.size) { deduplicated[it].word },
-                Array(deduplicated.size) { deduplicated[it].key },
-                IntArray(deduplicated.size) { deduplicated[it].frequency },
+                Array(kept.size) { words[kept[it]] },
+                Array(kept.size) { keys[kept[it]] },
+                IntArray(kept.size) { frequencies[kept[it]] },
             )
         }
     }

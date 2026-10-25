@@ -65,13 +65,34 @@ final class PerformanceTests: XCTestCase {
         }
     }
 
+    func testShippedKeysMatchRuntimeNormalizerAndAreSorted() throws {
+        // tools/build_dictionaries.py precomputes keys; a drift from KeyNormalizer would break lookups silently.
+        for id in LayoutIds.languages {
+            let url = try XCTUnwrap(SharedResources.url("dictionaries/\(id).txt"))
+            let normalizer = KeyNormalizer.forDictionary(id)
+            var previous: WordKey = []
+            var mismatches: [String] = []
+            for (number, line) in try String(contentsOf: url, encoding: .utf8).split(separator: "\n").enumerated() {
+                let columns = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+                let key = columns.count > 2 ? columns[2] : columns[0]
+                if normalizer.normalize(columns[0]) != key, mismatches.count < 5 {
+                    mismatches.append("line \(number + 1): \(columns[0]) → \(normalizer.normalize(columns[0])) ≠ \(key)")
+                }
+                let units = Array(key.utf16)
+                XCTAssertTrue(previous.keyLess(units), "\(id) line \(number + 1) is out of order")
+                previous = units
+            }
+            XCTAssertTrue(mismatches.isEmpty, "\(id): \(mismatches)")
+        }
+    }
+
     func testDictionaryLoadTime() throws {
         for id in LayoutIds.languages {
             let start = DispatchTime.now().uptimeNanoseconds
             let dictionary = try loadDictionary(id)
             let milliseconds = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
             print(String(format: "load %@: %d words in %.0f ms", id, dictionary.count, milliseconds))
-            XCTAssertLessThan(milliseconds, 1_500, "\(id) takes \(milliseconds) ms to load")
+            XCTAssertLessThan(milliseconds, 400, "\(id) takes \(milliseconds) ms to load")
         }
     }
 }

@@ -86,43 +86,77 @@ final class WordDictionary {
         return low
     }
 
-    /// Parses `word<TAB>frequency` lines.
-    static func load(text: String, normalizer: KeyNormalizer = .standard) -> WordDictionary {
-        struct Row {
-            let word: String
-            let key: WordKey
-            let frequency: Int
-        }
-        var rows: [Row] = []
-        rows.reserveCapacity(32_000)
-        text.enumerateLines { line, _ in
-            guard !line.isEmpty else { return }
-            let parts = line.split(separator: "\t", maxSplits: 1)
-            let word = String(parts[0]).trimmingCharacters(in: .whitespaces)
-            guard !word.isEmpty else { return }
-            let frequency = parts.count > 1 ? Int(parts[1].trimmingCharacters(in: .whitespaces)) ?? 1 : 1
-            rows.append(Row(word: word, key: Array(normalizer.normalize(word).utf16), frequency: frequency))
-        }
-        rows.sort { a, b in
-            if a.key == b.key { return a.frequency > b.frequency }
-            return a.key.keyLess(b.key)
-        }
+    /// Parses `word<TAB>frequency[<TAB>key]` lines. Bundled files carry their normalised keys and are already
+    /// sorted by key, so loading is a single pass over the bytes; any other input is normalised and sorted here.
+    static func load(data: Data, normalizer: KeyNormalizer = .standard) -> WordDictionary {
         var words: [String] = []
         var keys: [WordKey] = []
         var frequencies: [Int] = []
-        words.reserveCapacity(rows.count)
-        keys.reserveCapacity(rows.count)
-        frequencies.reserveCapacity(rows.count)
-        for row in rows where keys.last != row.key {
-            words.append(row.word)
-            keys.append(row.key)
-            frequencies.append(row.frequency)
+        words.reserveCapacity(52_000)
+        keys.reserveCapacity(52_000)
+        frequencies.reserveCapacity(52_000)
+        var sorted = true
+        data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
+            let bytes = buffer.bindMemory(to: UInt8.self)
+            let tab: UInt8 = 9, newline: UInt8 = 10, carriageReturn: UInt8 = 13
+            var lineStart = 0
+            while lineStart < bytes.count {
+                var lineEnd = lineStart
+                while lineEnd < bytes.count && bytes[lineEnd] != newline { lineEnd += 1 }
+                var contentEnd = lineEnd
+                if contentEnd > lineStart && bytes[contentEnd - 1] == carriageReturn { contentEnd -= 1 }
+                defer { lineStart = lineEnd + 1 }
+                guard contentEnd > lineStart else { continue }
+                var firstTab = lineStart
+                while firstTab < contentEnd && bytes[firstTab] != tab { firstTab += 1 }
+                let word = String(decoding: UnsafeBufferPointer(rebasing: bytes[lineStart..<firstTab]), as: UTF8.self)
+                    .trimmingCharacters(in: .whitespaces)
+                guard !word.isEmpty else { continue }
+                var frequency = 0
+                var position = firstTab + 1
+                var sawDigit = false
+                while position < contentEnd && bytes[position] != tab {
+                    let byte = bytes[position]
+                    if byte >= 48 && byte <= 57 {
+                        frequency = frequency * 10 + Int(byte - 48)
+                        sawDigit = true
+                    }
+                    position += 1
+                }
+                if !sawDigit { frequency = 1 }
+                let key: WordKey
+                if position < contentEnd {
+                    key = Array(String(decoding: UnsafeBufferPointer(rebasing: bytes[(position + 1)..<contentEnd]), as: UTF8.self).utf16)
+                } else {
+                    key = Array(normalizer.normalize(word).utf16)
+                }
+                if sorted, let last = keys.last, !last.keyLess(key) { sorted = false }
+                words.append(word)
+                keys.append(key)
+                frequencies.append(frequency)
+            }
         }
-        return WordDictionary(words: words, keys: keys, frequencies: frequencies)
+        if sorted { return WordDictionary(words: words, keys: keys, frequencies: frequencies) }
+
+        let order = keys.indices.sorted { a, b in
+            if keys[a] == keys[b] { return frequencies[a] > frequencies[b] }
+            return keys[a].keyLess(keys[b])
+        }
+        var keptWords: [String] = [], keptKeys: [WordKey] = [], keptFrequencies: [Int] = []
+        for index in order where keptKeys.last != keys[index] {
+            keptWords.append(words[index])
+            keptKeys.append(keys[index])
+            keptFrequencies.append(frequencies[index])
+        }
+        return WordDictionary(words: keptWords, keys: keptKeys, frequencies: keptFrequencies)
+    }
+
+    static func load(text: String, normalizer: KeyNormalizer = .standard) -> WordDictionary {
+        load(data: Data(text.utf8), normalizer: normalizer)
     }
 
     static func load(url: URL, normalizer: KeyNormalizer = .standard) -> WordDictionary {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return .empty }
-        return load(text: text, normalizer: normalizer)
+        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return .empty }
+        return load(data: data, normalizer: normalizer)
     }
 }

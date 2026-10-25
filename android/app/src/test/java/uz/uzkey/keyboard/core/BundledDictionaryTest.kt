@@ -26,6 +26,22 @@ class BundledDictionaryTest {
     }
 
     @Test
+    fun shippedKeysMatchTheRuntimeNormalizerAndAreSorted() {
+        // tools/build_dictionaries.py precomputes keys; a drift from KeyNormalizer would break lookups silently.
+        for (id in LayoutIds.LANGUAGES) {
+            val normalizer = KeyNormalizer.forDictionary(id)
+            var previous = ""
+            File(dictionaryDir, "$id.txt").readLines().forEachIndexed { line, text ->
+                val columns = text.split('\t')
+                val key = columns.getOrNull(2) ?: columns[0]
+                assertEquals("$id line ${line + 1}: key of “${columns[0]}”", normalizer.normalize(columns[0]), key)
+                assertTrue("$id line ${line + 1}: “$key” is not after “$previous”", key > previous)
+                previous = key
+            }
+        }
+    }
+
+    @Test
     fun uzbekScriptsStayInSync() {
         // The three Uzbek lists are generated from one source, so they must cover the same words.
         val sizes = listOf(LayoutIds.UZ_LATN_2027, LayoutIds.UZ_LATN, LayoutIds.UZ_CYRL).map { load(it).size }
