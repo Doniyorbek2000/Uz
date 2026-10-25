@@ -17,6 +17,7 @@ final class SnapshotTests: XCTestCase {
         view.theme = theme
         view.isLetterLayer = letters
         view.spaceLabel = try layout(id).spaceLabel
+        view.languageLabel = try layout(id).shortLabel
         view.setKeys(KeyboardBuilder.build(spec, isLetterLayer: letters, options: options))
         view.shiftState = shift
         view.frame = CGRect(x: 0, y: 0, width: 390, height: view.preferredHeight)

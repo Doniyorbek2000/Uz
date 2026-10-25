@@ -292,6 +292,7 @@ class UzKeyService :
         )
         view.isLetterLayer = layer == Layer.LETTERS
         view.spaceLabel = if (layer == Layer.LETTERS || layer == Layer.SYMBOLS) language.spaceLabel else ""
+        view.languageLabel = language.shortLabel
         view.setKeys(KeyboardBuilder.build(spec, layer == Layer.LETTERS, options))
         view.shiftState = shift
     }

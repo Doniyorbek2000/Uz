@@ -96,6 +96,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         }
     var isLetterLayer = true
     var spaceLabel = ""
+    var languageLabel = ""
     var enterIcon = Icon.RETURN
     var showKeyPopup = true
     var longPressDelay = 320L
@@ -386,7 +387,16 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             }
             KeyType.BACKSPACE -> Icons.draw(canvas, Icon.BACKSPACE, rect.centerX(), rect.centerY(), iconSize, theme.text, iconPaint)
             KeyType.ENTER -> Icons.draw(canvas, enterIcon, rect.centerX(), rect.centerY(), iconSize, theme.onAccent, iconPaint)
-            KeyType.LANGUAGE -> Icons.draw(canvas, Icon.GLOBE, rect.centerX(), rect.centerY(), iconSize * 0.92f, theme.text, iconPaint)
+            KeyType.LANGUAGE -> if (languageLabel.isEmpty()) {
+                Icons.draw(canvas, Icon.GLOBE, rect.centerX(), rect.centerY(), iconSize * 0.92f, theme.text, iconPaint)
+            } else {
+                Icons.draw(canvas, Icon.GLOBE, rect.centerX(), rect.top + rect.height() * 0.32f, iconSize * 0.55f, theme.subText, iconPaint)
+                labelPaint.textSize = 12.5f * density
+                labelPaint.color = theme.text
+                labelPaint.isFakeBoldText = true
+                canvas.drawText(languageLabel, rect.centerX(), baselineFor(rect.top + rect.height() * 0.7f), labelPaint)
+                labelPaint.isFakeBoldText = false
+            }
             KeyType.EMOJI -> Icons.draw(canvas, Icon.EMOJI, rect.centerX(), rect.centerY(), iconSize * 0.92f, theme.text, iconPaint)
             KeyType.SYMBOLS, KeyType.SYMBOLS_MORE, KeyType.LETTERS -> {
                 val text = spec.label.ifEmpty { if (spec.type == KeyType.LETTERS) "ABC" else "?123" }

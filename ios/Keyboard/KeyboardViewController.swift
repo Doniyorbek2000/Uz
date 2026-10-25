@@ -308,6 +308,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         )
         keyboardView.isLetterLayer = layer == .letters
         keyboardView.spaceLabel = (layer == .letters || layer == .symbols) ? language.spaceLabel : ""
+        keyboardView.languageLabel = language.shortLabel
         keyboardView.setKeys(KeyboardBuilder.build(spec, isLetterLayer: layer == .letters, options: options))
         keyboardView.shiftState = shift
         updateHeight()

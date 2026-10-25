@@ -36,6 +36,7 @@ write_prefs() {
 </map>
 XML
   adb shell ime set "$IME"
+  sleep 1
 }
 
 focus_text_field() {
@@ -71,11 +72,20 @@ capture() {
     adb shell input text "$text"
     sleep 2
   fi
+  local current
+  current=$(adb shell settings get secure default_input_method | tr -d '\r')
+  echo "default input method: $current"
+  if [[ "$current" != "$IME" ]]; then
+    echo "UzKey is not the active keyboard; recent log:" >&2
+    adb logcat -d -t 400 | grep -E "UzKey|uz.uzkey|AndroidRuntime|InputMethodManagerService" >&2 || true
+    return 1
+  fi
   adb exec-out screencap -p > "$OUT/android-$name.png"
   echo "captured $OUT/android-$name.png"
 }
 
 ALL="uz_latn_2027,uz_latn,uz_cyrl,ru,en"
+adb logcat -c
 
 adb shell am force-stop "$PACKAGE"
 adb shell am start -W -n "$PACKAGE/.settings.SettingsActivity" > /dev/null

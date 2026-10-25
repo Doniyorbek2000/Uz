@@ -80,6 +80,7 @@ final class KeyboardView: UIView {
     var shiftState: ShiftState = .off { didSet { if oldValue != shiftState { setNeedsDisplay() } } }
     var isLetterLayer = true
     var spaceLabel = ""
+    var languageLabel = ""
     var enterIcon: Icon = .returnKey
     var showKeyPopup = true
     var longPressDelay: TimeInterval = 0.32
@@ -369,7 +370,11 @@ final class KeyboardView: UIView {
         case .enter:
             Icons.draw(enterIcon, in: context, center: center, size: iconSize, color: theme.onAccent)
         case .language:
-            Icons.draw(.globe, in: context, center: center, size: iconSize * 0.92, color: theme.text)
+            if languageLabel.isEmpty {
+                Icons.draw(.globe, in: context, center: center, size: iconSize * 0.92, color: theme.text)
+            } else {
+                drawText(languageLabel, in: rect, size: 15, color: theme.text, weight: .semibold)
+            }
         case .globe:
             Icons.draw(.globe, in: context, center: center, size: iconSize * 0.92, color: theme.subText)
         case .emoji:
