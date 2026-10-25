@@ -37,6 +37,7 @@ write_prefs() {
 XML
   adb shell ime set "$IME"
   sleep 1
+  echo "after ime set: $(adb shell settings get secure default_input_method | tr -d '\r')"
 }
 
 focus_text_field() {
@@ -77,7 +78,8 @@ capture() {
   echo "default input method: $current"
   if [[ "$current" != "$IME" ]]; then
     echo "UzKey is not the active keyboard; recent log:" >&2
-    adb logcat -d -t 400 | grep -E "UzKey|uz.uzkey|AndroidRuntime|InputMethodManagerService" >&2 || true
+    adb logcat -d | grep -iE "uzkey|AndroidRuntime|FATAL|InputMethod" | grep -v AppsFilter | tail -150 >&2 || true
+    adb shell dumpsys input_method | head -60 >&2 || true
     return 1
   fi
   adb exec-out screencap -p > "$OUT/android-$name.png"
