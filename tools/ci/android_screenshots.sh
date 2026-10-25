@@ -22,11 +22,31 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 adb shell ime enable "$IME"
-adb shell ime set "$IME"
+
+# `am force-stop` must not be used here: when the stopped package hosts the current input method,
+# InputMethodManagerService asynchronously resets the selection to the system default keyboard.
+# Killing the process from inside the app's own uid lets the system simply rebind the service.
+kill_app() {
+  adb shell "run-as $PACKAGE sh -c 'pid=\$(pidof $PACKAGE) && kill -9 \$pid; true'"
+  sleep 1
+}
+
+select_ime() {
+  for _ in $(seq 1 15); do
+    adb shell ime set "$IME" > /dev/null
+    sleep 1
+    if [[ "$(adb shell settings get secure default_input_method | tr -d '\r')" == "$IME" ]]; then
+      return 0
+    fi
+  done
+  echo "could not select $IME" >&2
+  return 1
+}
 
 write_prefs() {
   local layout="$1" theme="$2" layouts="$3"
-  adb shell am force-stop "$PACKAGE"
+  # Stop the running process first so it cannot write its cached preferences over the new file.
+  kill_app
   adb shell "run-as $PACKAGE sh -c 'mkdir -p $PREFS_DIR && cat > $PREFS_DIR/uzkey_settings.xml'" <<XML
 <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <map>
@@ -35,9 +55,8 @@ write_prefs() {
     <string name="theme">$theme</string>
 </map>
 XML
-  adb shell ime set "$IME"
-  sleep 1
-  echo "after ime set: $(adb shell settings get secure default_input_method | tr -d '\r')"
+  kill_app
+  select_ime
 }
 
 focus_text_field() {
@@ -68,6 +87,7 @@ PY
 
 capture() {
   local name="$1" text="${2:-}"
+  select_ime
   focus_text_field
   if [[ -n "$text" ]]; then
     adb shell input text "$text"
@@ -75,7 +95,6 @@ capture() {
   fi
   local current
   current=$(adb shell settings get secure default_input_method | tr -d '\r')
-  echo "default input method: $current"
   if [[ "$current" != "$IME" ]]; then
     echo "UzKey is not the active keyboard; recent log:" >&2
     adb logcat -d | grep -iE "uzkey|AndroidRuntime|FATAL|InputMethod" | grep -v AppsFilter | tail -150 >&2 || true
@@ -89,7 +108,7 @@ capture() {
 ALL="uz_latn_2027,uz_latn,uz_cyrl,ru,en"
 adb logcat -c
 
-adb shell am force-stop "$PACKAGE"
+select_ime
 adb shell am start -W -n "$PACKAGE/.settings.SettingsActivity" > /dev/null
 sleep 3
 adb exec-out screencap -p > "$OUT/android-settings.png"
