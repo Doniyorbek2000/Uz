@@ -3,6 +3,7 @@ package uz.uzkey.keyboard.settings
 import android.content.Context
 import android.content.SharedPreferences
 import uz.uzkey.keyboard.core.LayoutIds
+import uz.uzkey.keyboard.core.SoundPacks
 
 enum class ThemeChoice(val id: String) {
     SYSTEM("system"), LIGHT("light"), DARK("dark"), BLACK("black"), BLUE("blue");
@@ -60,6 +61,16 @@ class KeyboardSettings(context: Context) {
         set(value) = preferences.edit().putString(KEY_KEY_HEIGHT, value.id).apply()
 
     var keySound by BooleanPreference(KEY_SOUND, false)
+
+    /** Id of the key-click sound pack, see [uz.uzkey.keyboard.core.SoundPacks]. */
+    var soundPack: String
+        get() = preferences.getString(KEY_SOUND_PACK, null) ?: SoundPacks.DEFAULT
+        set(value) = preferences.edit().putString(KEY_SOUND_PACK, value).apply()
+
+    /** Key-click volume, 0–100. */
+    var soundVolume: Int
+        get() = preferences.getInt(KEY_SOUND_VOLUME, DEFAULT_SOUND_VOLUME).coerceIn(0, 100)
+        set(value) = preferences.edit().putInt(KEY_SOUND_VOLUME, value.coerceIn(0, 100)).apply()
     var vibration by BooleanPreference(KEY_VIBRATION, true)
     var autoCapitalize by BooleanPreference(KEY_AUTO_CAPITALIZE, true)
     var doubleSpacePeriod by BooleanPreference(KEY_DOUBLE_SPACE, true)
@@ -96,6 +107,9 @@ class KeyboardSettings(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_KEY_HEIGHT = "key_height"
         const val KEY_SOUND = "key_sound"
+        const val KEY_SOUND_PACK = "sound_pack"
+        const val KEY_SOUND_VOLUME = "sound_volume"
+        const val DEFAULT_SOUND_VOLUME = 70
         const val KEY_VIBRATION = "vibration"
         const val KEY_AUTO_CAPITALIZE = "auto_capitalize"
         const val KEY_DOUBLE_SPACE = "double_space_period"
@@ -113,6 +127,6 @@ class KeyboardSettings(context: Context) {
         private const val MAX_RECENT_EMOJI = 32
 
         /** Keys whose change does not require rebuilding the keyboard. */
-        val VOLATILE_KEYS = setOf(KEY_CURRENT_LAYOUT, KEY_RECENT_EMOJI)
+        val VOLATILE_KEYS = setOf(KEY_CURRENT_LAYOUT, KEY_RECENT_EMOJI, KEY_SOUND, KEY_SOUND_PACK, KEY_SOUND_VOLUME)
     }
 }

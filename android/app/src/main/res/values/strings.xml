@@ -80,4 +80,16 @@
     <string name="pref_clipboard">Clipboard history</string>
     <string name="pref_clipboard_desc">Keep recently copied text for a day (passwords are never saved)</string>
     <string name="tip_gesture">Swipe across letters to type without lifting your finger</string>
+    <string name="pref_sound_desc">Plays a sound on every key press; silent while the phone is muted</string>
+    <string name="sound_pack_title">Sound</string>
+    <string name="sound_volume">Volume</string>
+    <string name="sound_preview">Tap a sound to hear it</string>
+    <string name="sound_system">System</string>
+    <string name="sound_mechanical">Mechanical</string>
+    <string name="sound_typewriter">Typewriter</string>
+    <string name="sound_bubble">Bubbles</string>
+    <string name="sound_drop">Water drops</string>
+    <string name="sound_soft">Soft</string>
+    <string name="sound_marimba">Marimba</string>
+    <string name="sound_retro">Retro 8-bit</string>
 </resources>

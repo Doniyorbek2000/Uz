@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Generate the bundled word lists in shared/dictionaries/.
 
-Output format: one entry per line, ``word<TAB>frequency`` where frequency is 1-255,
-sorted by frequency descending.
+Output format: a ``#sorted-keys`` header, then one entry per line, ``word<TAB>frequency[<TAB>key]``
+where frequency is 1-255 and key is the normalised lookup key (written only when it differs from the
+word); sorted by key in UTF-16 order with one entry per key, so the apps load it without normalising
+or sorting.
 
 * en, ru  — top words from the ``wordfreq`` package (data: CC BY-SA 4.0).
 * uz_latn, uz_latn_2027, uz_cyrl — tools/uz_seed.txt merged with corpus frequencies from
@@ -131,6 +133,8 @@ CYRILLIC_SINGLE = {
     "t": "т", "u": "у", "v": "в", "x": "х", "y": "й", "z": "з", "c": "с", "w": "в", "`": "ъ",
 }
 VOWELS = set("aeiouAEIOU")
+# -nsiya words whose Cyrillic spelling really has с.
+NSIYA_WITH_S = ("pensiya", "ekspansiya", "dispansiya")
 
 
 def to_cyrillic(word: str) -> str:
@@ -143,7 +147,16 @@ def to_cyrillic(word: str) -> str:
     while i < len(lower):
         rest = lower[i:]
         prev = lower[i - 1] if i > 0 else ""
-        if rest.startswith("o'"):
+        # Russian loanwords write ц as "ts" after a vowel (revolyutsiya → революция). After a consonant it is
+        # spelled "s", which cannot be told apart from a real с (konferensiya vs pensiya), so that stays с.
+        if rest.startswith(("tsiya", "tsion")):
+            out.append("ц"); i += 2
+        elif rest.startswith("siya") and lower[max(0, i - 2):i] in ("en", "an") and not any(
+            lower.startswith(stem) for stem in NSIYA_WITH_S
+        ):
+            # -ensiya/-ansiya loans are almost always -нция (konferensiya, stansiya, tendensiya).
+            out.append("ц"); i += 1
+        elif rest.startswith("o'"):
             out.append("ў"); i += 2
         elif rest.startswith("g'"):
             out.append("ғ"); i += 2
@@ -185,15 +198,63 @@ def from_wordfreq(lang: str, pattern: re.Pattern[str]) -> list[Entry]:
     return entries
 
 
+APOSTROPHE_LIKE = set("'\u2018\u2019`" + MODIFIER_TURNED_COMMA + MODIFIER_APOSTROPHE)
+
+
+def normalize_key(word: str) -> str:
+    """Mirror of TextRules.normalizeKey (Kotlin/Swift): lower-case, apostrophes folded to ', ё → е."""
+    return "".join("'" if c in APOSTROPHE_LIKE else "е" if c == "ё" else c for c in word.lower())
+
+
+def latin_2027_key(word: str) -> str:
+    """Mirror of KeyNormalizer.LATIN_2027: the normalised key with oʻ gʻ sh ch spelled ö ğ ş ç."""
+    key = normalize_key(word)
+    out: list[str] = []
+    i = 0
+    while i < len(key):
+        c = key[i]
+        nxt = key[i + 1] if i + 1 < len(key) else ""
+        if c in "og" and nxt == "'":
+            out.append("ö" if c == "o" else "ğ")
+            i += 2
+        elif c in "sc" and nxt == "h":
+            out.append("ş" if c == "s" else "ç")
+            i += 2
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+# First line of every generated file: entries are sorted by key, and a missing key column means key == word.
+SORTED_KEYS_HEADER = "#sorted-keys"
+
+
+def utf16_order(key: str) -> bytes:
+    """Sort key matching String comparison in Kotlin and the UTF-16 key comparison in Swift."""
+    return key.encode("utf-16-be")
+
+
 def write(name: str, entries: list[Entry]) -> None:
-    merged: dict[str, Entry] = {}
+    """Writes `word<TAB>frequency[<TAB>key]` sorted by key, one entry per key.
+
+    The key column (the normalised lookup key) is present only when it differs from the word. Shipping
+    keys pre-sorted lets the apps load a dictionary without normalising and sorting 50 000 words on the
+    phone; tests on both platforms check the keys against the runtime normaliser.
+    """
+    to_key = latin_2027_key if name == "uz_latn_2027" else normalize_key
+    best: dict[str, tuple[Entry, str]] = {}
     for entry in entries:
-        existing = merged.get(entry.word.lower())
-        if existing is None or existing.freq < entry.freq:
-            merged[entry.word.lower()] = entry
-    ordered = sorted(merged.values(), key=lambda e: (-e.freq, e.word))
+        key = to_key(entry.word)
+        existing = best.get(key)
+        if existing is None or existing[0].freq < entry.freq:
+            best[key] = (entry, key)
+    ordered = sorted(best.values(), key=lambda item: utf16_order(item[1]))
+    lines = []
+    for entry, key in ordered:
+        lines.append(f"{entry.word}\t{entry.freq}\n" if key == entry.word else f"{entry.word}\t{entry.freq}\t{key}\n")
     path = OUT_DIR / f"{name}.txt"
-    path.write_text("".join(f"{e.word}\t{e.freq}\n" for e in ordered), encoding="utf-8")
+    path.write_text(SORTED_KEYS_HEADER + "\n" + "".join(lines), encoding="utf-8")
     log.info("wrote %s (%d words)", path.relative_to(ROOT), len(ordered))
 
 

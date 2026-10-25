@@ -31,6 +31,9 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(UzbekTransliterator.convert("ШАҲАР", to: .latin2027), "ŞAHAR")
         XCTAssertEqual(UzbekTransliterator.convert("yo'l", to: .cyrillic), "йўл")
         XCTAssertEqual(UzbekTransliterator.convert("ertaga", to: .cyrillic), "эртага")
+        XCTAssertEqual(UzbekTransliterator.convert("revolyutsiya", to: .cyrillic), "революция")
+        XCTAssertEqual(UzbekTransliterator.convert("informatsion", to: .cyrillic), "информацион")
+        XCTAssertEqual(UzbekTransliterator.convert("pensiya", to: .cyrillic), "пенсия")
         XCTAssertEqual(UzbekTransliterator.convert("Salom, dunyo! 2027-yil: Hello.", to: .cyrillic), "Салом, дунё! 2027-йил: Ҳелло.")
     }
 

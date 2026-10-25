@@ -1,3 +1,4 @@
+import AudioToolbox
 import SwiftUI
 import UIKit
 
@@ -19,6 +20,12 @@ final class SettingsModel: ObservableObject {
     @Published var keyPopup: Bool { didSet { settings.keyPopup = keyPopup } }
     @Published var vibration: Bool { didSet { settings.vibration = vibration } }
     @Published var keySound: Bool { didSet { settings.keySound = keySound } }
+    @Published var soundPack: String { didSet { settings.soundPack = soundPack } }
+    @Published var soundVolume: Double { didSet { settings.soundVolume = soundVolume } }
+    let soundPlayer = KeySoundPlayer()
+    /// The system keyboard click, for previewing the "System" choice inside the app.
+    private static let systemKeyClick: SystemSoundID = 1104
+    private var previewGeneration = 0
     @Published var gestureTyping: Bool { didSet { settings.gestureTyping = gestureTyping } }
     @Published var clipboardHistory: Bool { didSet { settings.clipboardHistory = clipboardHistory } }
     @Published var keyboardEnabled = false
@@ -40,6 +47,8 @@ final class SettingsModel: ObservableObject {
         keyPopup = settings.keyPopup
         vibration = settings.vibration
         keySound = settings.keySound
+        soundPack = settings.soundPack
+        soundVolume = settings.soundVolume
         gestureTyping = settings.gestureTyping
         clipboardHistory = settings.clipboardHistory
         var names: [String: (name: String, short: String)] = [:]
@@ -52,6 +61,24 @@ final class SettingsModel: ObservableObject {
         }
         layoutNames = names
         refreshStatus()
+    }
+
+    /// Plays a short typed phrase so the character of a pack comes through (a tune with musical packs).
+    func previewSound(_ packId: String) {
+        previewGeneration += 1
+        let generation = previewGeneration
+        let strokes: [(KeyType, String?)] = [(.char, "s"), (.char, "a"), (.char, "l"), (.char, "o"), (.char, "m"),
+                                             (.space, nil), (.backspace, nil), (.enter, nil)]
+        var delay = 0.0
+        for (type, label) in strokes {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, self.previewGeneration == generation else { return }
+                if !self.soundPlayer.play(packId: packId, type: type, label: label, volume: Float(self.soundVolume)) {
+                    AudioServicesPlaySystemSound(Self.systemKeyClick)
+                }
+            }
+            delay += type == .space ? 0.17 : 0.12
+        }
     }
 
     func refreshStatus() {
@@ -174,7 +201,6 @@ struct SettingsView: View {
                     Toggle(L10n.numberHints, isOn: $model.numberHints)
                     Toggle(L10n.popup, isOn: $model.keyPopup)
                     Toggle(L10n.vibration, isOn: $model.vibration)
-                    Toggle(L10n.sound, isOn: $model.keySound)
                     VStack(alignment: .leading) {
                         Text(L10n.keyHeight)
                         Picker(L10n.keyHeight, selection: $model.keyHeight) {
@@ -183,6 +209,39 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
                     .padding(.vertical, 4)
+                }
+                .tint(brand)
+
+                Section(header: Text(L10n.soundTitle), footer: Text(L10n.soundFooter)) {
+                    Toggle(L10n.sound, isOn: $model.keySound)
+                        .onChange(of: model.keySound) { on in if on { model.previewSound(model.soundPack) } }
+                    if model.keySound {
+                        ForEach(model.soundPlayer.packIds, id: \.self) { id in
+                            Button {
+                                model.soundPack = id
+                                model.previewSound(id)
+                            } label: {
+                                HStack {
+                                    Text(L10n.soundPackName(id)).foregroundColor(.primary)
+                                    Spacer()
+                                    if model.soundPack == id {
+                                        Image(systemName: "checkmark").foregroundColor(brand)
+                                    }
+                                }
+                            }
+                        }
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(L10n.soundVolume)
+                                Spacer()
+                                Text("\(Int((model.soundVolume * 100).rounded()))%").foregroundColor(.secondary)
+                            }
+                            Slider(value: $model.soundVolume, in: 0...1) { editing in
+                                if !editing { model.previewSound(model.soundPack) }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
                 .tint(brand)
 

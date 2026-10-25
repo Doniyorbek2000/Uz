@@ -6,6 +6,9 @@ plugins {
 
 val releaseKeystorePath: String? = System.getenv("UZKEY_KEYSTORE_PATH")
 
+// Play requires a higher versionCode for every upload: CI uses its run number unless one is given explicitly.
+val uzkeyVersionCode: Int = (System.getenv("UZKEY_VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER"))?.toIntOrNull() ?: 1
+
 android {
     namespace = "uz.uzkey.keyboard"
     compileSdk = 35
@@ -14,8 +17,9 @@ android {
         applicationId = "uz.uzkey.keyboard"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = uzkeyVersionCode
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -69,4 +73,8 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }

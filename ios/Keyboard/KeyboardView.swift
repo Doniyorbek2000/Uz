@@ -77,7 +77,14 @@ final class KeyboardView: UIView {
     weak var delegate: KeyboardViewDelegate?
 
     var theme: KeyboardTheme = .light { didSet { setNeedsDisplay() } }
-    var shiftState: ShiftState = .off { didSet { if oldValue != shiftState { setNeedsDisplay() } } }
+    var shiftState: ShiftState = .off {
+        didSet {
+            guard oldValue != shiftState else { return }
+            setNeedsDisplay()
+            // Letter labels and the shift key's description depend on the shift state.
+            accessibilityElementsCache = nil
+        }
+    }
     var isLetterLayer = true
     var spaceLabel = ""
     var languageLabel = ""
@@ -449,7 +456,11 @@ final class KeyboardView: UIView {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches { pointerMove(touch, at: touch.location(in: self)) }
+        for touch in touches {
+            // Coalesced samples keep the corners of fast swipes that the display-rate events skip.
+            let samples = event?.coalescedTouches(for: touch) ?? [touch]
+            for sample in samples { pointerMove(touch, at: sample.location(in: self)) }
+        }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {

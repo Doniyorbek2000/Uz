@@ -106,6 +106,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uz.uzkey.app.tests
         GENERATE_INFOPLIST_FILE: YES
+        # The shared sources are compiled into the test bundle; optimise them as in the shipping extension
+        # so the latency budgets in PerformanceTests measure realistic code.
+        SWIFT_OPTIMIZATION_LEVEL: "-O"
 schemes:
   UzKey:
     build:

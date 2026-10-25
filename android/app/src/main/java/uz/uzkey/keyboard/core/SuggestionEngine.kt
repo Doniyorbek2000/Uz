@@ -47,13 +47,30 @@ class SuggestionEngine(
             return if (count == 0) 0.0 else 30.0 * ln(1.0 + count)
         }
 
-        // 1. Completions from the bundled dictionary.
-        val range = dictionary.prefixRange(typedKey)
-        for (index in range) {
+        // 1. Completions from the bundled dictionary. Short prefixes match thousands of words, so only the
+        // best few are kept (a word outside them cannot reach the final list).
+        val keep = limit + 2
+        val bestIndices = IntArray(keep)
+        val bestScores = DoubleArray(keep)
+        var kept = 0
+        for (index in dictionary.prefixRange(typedKey)) {
             val key = dictionary.key(index)
             val lengthPenalty = (key.length - typedKey.length).coerceAtMost(8) * 1.5
             val exactBonus = if (key == typedKey) EXACT_BONUS else 0.0
-            offer(key, dictionary.word(index), dictionary.frequency(index) + COMPLETION_BONUS + exactBonus - lengthPenalty + user.boost(key) + contextBoost(key))
+            val score = dictionary.frequency(index) + COMPLETION_BONUS + exactBonus - lengthPenalty + user.boost(key) + contextBoost(key)
+            if (kept == keep && score <= bestScores[keep - 1]) continue
+            var position = if (kept < keep) kept++ else keep - 1
+            while (position > 0 && bestScores[position - 1] < score) {
+                bestScores[position] = bestScores[position - 1]
+                bestIndices[position] = bestIndices[position - 1]
+                position--
+            }
+            bestScores[position] = score
+            bestIndices[position] = index
+        }
+        for (i in 0 until kept) {
+            val index = bestIndices[i]
+            offer(dictionary.key(index), dictionary.word(index), bestScores[i])
         }
 
         // 2. Completions from learned words that are not in the dictionary.
@@ -122,16 +139,21 @@ class SuggestionEngine(
         val allowShorter = typedLength >= 5
         val first = typedKey[0]
         val second = if (typedLength > 1) typedKey[1] else first
+        val typedMask = WordDictionary.maskOf(typedKey)
+        val maxMaskDifference = 2 * maxDistance
         for (index in 0 until dictionary.size) {
-            val key = dictionary.key(index)
-            val keyLength = key.length
+            val keyLength = dictionary.keyLength(index)
             if (keyLength > MAX_KEY_LENGTH || keyLength < 2) continue
             if (keyLength < typedLength && (!allowShorter || typedLength - keyLength > maxDistance)) continue
             // Typos rarely hit the first letter; also accept a swap of the first two letters.
-            val firstMatches = key[0] == first || (key[0] == second && key[1] == first)
+            val keyFirst = dictionary.firstChar(index)
+            val firstMatches = keyFirst == first || (keyFirst == second && dictionary.secondChar(index) == first)
             if (!firstMatches && !(allowShorter && abs(keyLength - typedLength) <= 1)) continue
+            val key = dictionary.key(index)
             var kind: Correction? = null
-            if (abs(keyLength - typedLength) <= maxDistance) {
+            if (abs(keyLength - typedLength) <= maxDistance &&
+                java.lang.Long.bitCount(typedMask xor dictionary.mask(index)) <= maxMaskDifference
+            ) {
                 when (distance(typedKey, key, keyLength, maxDistance)) {
                     0 -> continue
                     1 -> kind = Correction.FULL

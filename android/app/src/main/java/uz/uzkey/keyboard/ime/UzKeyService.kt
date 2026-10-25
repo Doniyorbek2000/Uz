@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
-import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -118,6 +117,7 @@ class UzKeyService :
         settings.preferences.unregisterOnSharedPreferenceChangeListener(this)
         mainHandler.removeCallbacks(refreshRunnable)
         store.shutdown()
+        soundPlayer.release()
         super.onDestroy()
     }
 
@@ -158,6 +158,7 @@ class UzKeyService :
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         configureForField(info)
+        if (settings.keySound) soundPlayer.preload(settings.soundPack)
         if (settings.userDictionaryEpoch != userDictionaryEpoch) {
             userDictionaryEpoch = settings.userDictionaryEpoch
             store.clearLearnedWords()
@@ -195,6 +196,9 @@ class UzKeyService :
     }
 
     override fun onSharedPreferenceChanged(preferences: SharedPreferences, key: String?) {
+        if (key == KeyboardSettings.KEY_SOUND || key == KeyboardSettings.KEY_SOUND_PACK) {
+            if (settings.keySound) soundPlayer.preload(settings.soundPack) else soundPlayer.release()
+        }
         if (key == KeyboardSettings.KEY_USER_DICT_EPOCH) {
             userDictionaryEpoch = settings.userDictionaryEpoch
             store.clearLearnedWords()
@@ -443,9 +447,9 @@ class UzKeyService :
             getSystemService(VIBRATOR_SERVICE) as? Vibrator
         }
     }
-    private val audioManager: AudioManager? by lazy { getSystemService(AudioManager::class.java) }
+    private val soundPlayer by lazy { KeySoundPlayer(this) }
 
-    private fun feedback(type: KeyType) {
+    private fun feedback(type: KeyType, label: String? = null) {
         if (settings.vibration) {
             val vibrator = vibrator
             if (vibrator != null && vibrator.hasVibrator()) {
@@ -457,20 +461,14 @@ class UzKeyService :
             }
         }
         if (settings.keySound) {
-            val effect = when (type) {
-                KeyType.BACKSPACE -> AudioManager.FX_KEYPRESS_DELETE
-                KeyType.SPACE -> AudioManager.FX_KEYPRESS_SPACEBAR
-                KeyType.ENTER -> AudioManager.FX_KEYPRESS_RETURN
-                else -> AudioManager.FX_KEYPRESS_STANDARD
-            }
-            audioManager?.playSoundEffect(effect, -1f)
+            soundPlayer.play(settings.soundPack, type, label, settings.soundVolume / 100f)
         }
     }
 
     // ---- KeyboardView.Listener ------------------------------------------------------------
 
     override fun onKeyDown(key: KeySpec) {
-        feedback(key.type)
+        feedback(key.type, key.label)
         when (key.type) {
             KeyType.SHIFT -> handleShiftDown()
             KeyType.BACKSPACE -> handleBackspace()
@@ -767,7 +765,8 @@ class UzKeyService :
         val now = SystemClock.uptimeMillis()
         ic.beginBatchEdit()
         val before = ic.getTextBeforeCursor(64, 0) ?: ""
-        val doubleSpace = settings.doubleSpacePeriod && lastAction == LastAction.SPACE && now - lastSpaceTime < DOUBLE_SPACE_MS &&
+        val doubleSpace = settings.doubleSpacePeriod && (lastAction == LastAction.SPACE || lastAction == LastAction.AUTOCORRECT) &&
+            now - lastSpaceTime < DOUBLE_SPACE_MS &&
             before.length >= 2 && before[before.length - 1] == ' ' &&
             (before[before.length - 2].isLetterOrDigit() || before[before.length - 2] in "\"')»”")
         var autocorrected = false

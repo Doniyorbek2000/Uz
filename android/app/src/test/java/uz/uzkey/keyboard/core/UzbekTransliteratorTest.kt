@@ -41,6 +41,9 @@ class UzbekTransliteratorTest {
         assertEquals("маъно", UzbekTransliterator.convert("ma'no", Script.CYRILLIC))
         assertEquals("ШАҲАР", UzbekTransliterator.convert("ŞAHAR", Script.CYRILLIC))
         assertEquals("Чиройли", UzbekTransliterator.convert("Chiroyli", Script.CYRILLIC))
+        assertEquals("революция", UzbekTransliterator.convert("revolyutsiya", Script.CYRILLIC))
+        assertEquals("информацион", UzbekTransliterator.convert("informatsion", Script.CYRILLIC))
+        assertEquals("пенсия", UzbekTransliterator.convert("pensiya", Script.CYRILLIC))
     }
 
     @Test

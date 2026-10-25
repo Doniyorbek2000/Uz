@@ -92,6 +92,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             if (field != value) {
                 field = value
                 invalidate()
+                // Letter labels and the shift key's description depend on the shift state.
+                notifyAccessibilityTreeChanged()
             }
         }
     var isLetterLayer = true
@@ -509,7 +511,10 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             }
             MotionEvent.ACTION_MOVE -> {
                 for (index in 0 until event.pointerCount) {
-                    pointerMove(event.getPointerId(index), event.getX(index), event.getY(index))
+                    val id = event.getPointerId(index)
+                    // Fast swipes arrive batched; the historical samples keep the corners of the gesture path.
+                    for (h in 0 until event.historySize) pointerMove(id, event.getHistoricalX(index, h), event.getHistoricalY(index, h))
+                    pointerMove(id, event.getX(index), event.getY(index))
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
@@ -766,9 +771,13 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private var accessibilityFocusedId = INVALID_ID
 
     private fun notifyAccessibilityTreeChanged() {
-        if (accessibilityManager?.isEnabled == true) {
-            sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
-        }
+        if (accessibilityManager?.isEnabled != true || parent == null) return
+        // SUBTREE makes accessibility services drop their cached virtual key nodes; without it only the
+        // host node is refreshed and TalkBack keeps announcing old labels after shift or layout changes.
+        @Suppress("DEPRECATION")
+        val event = android.view.accessibility.AccessibilityEvent.obtain(android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
+        event.contentChangeTypes = android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_SUBTREE
+        sendAccessibilityEventUnchecked(event)
     }
 
     private fun virtualIdAt(x: Float, y: Float): Int {

@@ -1,0 +1,39 @@
+{
+  "packs": [
+    {
+      "id": "mechanical",
+      "keys": 3,
+      "variation": "random"
+    },
+    {
+      "id": "typewriter",
+      "keys": 3,
+      "variation": "random"
+    },
+    {
+      "id": "bubble",
+      "keys": 4,
+      "variation": "random"
+    },
+    {
+      "id": "drop",
+      "keys": 3,
+      "variation": "random"
+    },
+    {
+      "id": "soft",
+      "keys": 3,
+      "variation": "random"
+    },
+    {
+      "id": "marimba",
+      "keys": 8,
+      "variation": "by_key"
+    },
+    {
+      "id": "retro",
+      "keys": 4,
+      "variation": "by_key"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ Android (Kotlin) va iOS (Swift) uçun alohida native ilova, tugmalar joylaşuvi 
 | **Tugmalar** | Bosib turganda qöşimça harflar (o → ö, oʻ, ó…), raqam belgilari, Caps Lock (Shift ×2), böş joyni surib kursorni siljitiş |
 | **Qulayliklar** | Ikki böş joy → nuqta, avtomatik boş harf, emoji paneli (700+), raqam/telefon maydonlari uçun raqamli klaviatura |
 | **Surib yoziş** | Barmoqni kötarmasdan harflar ustida surib söz yoziş (5 ta tilning hammasida) |
+| **Tugma ovozlari** | 7 xil ovoz: Mexanik, Yozuv maşinkasi, Pufakçalar, Tomçilar, Yumşoq, Marimba (har harf öz notasi — yozganda kuy çiqadi), Retro 8-bit + tizim ovozi; balandlik sozlanadi, sozlamalarda eşitib köriş mumkin |
 | **Bufer tarixi** | Oxirgi nusxa olingan matnlar (24 soat, muhimlarini saqlab qöyiş mumkin; parollar saqlanmaydi) |
 | **Ovoz bilan yoziş** | Android: 🎤 tugmasi Google ovozli yozişiga ötadi; iOS: tizimning diktovka tugmasi (klaviatura ostida) |
 | **Maxsus imkoniyatlar** | TalkBack va VoiceOver: har bir tugma övozli öqiladi, barmoqni kötarib yoziş |
@@ -35,7 +36,8 @@ CI har safar klaviaturani haqiqiy Android emulyatorida va iOS da çizib, rasmlar
 
 ### Android
 1. GitHub → **Actions** → oxirgi muvaffaqiyatli **Android** işga tuşirilişi → `uzkey-android` artefaktini yuklab oling.
-2. `app-release.apk` ni telefonga örnating (nomaʼlum manbalardan örnatişga ruxsat bering).
+2. `apk/release/app-release.apk` ni telefonga örnating (nomaʼlum manbalardan örnatişga ruxsat bering).
+   Google Play uçun esa `bundle/release/app-release.aab` yuklanadi.
 3. UzKey ilovasini oçing → **Yoqiş** → **Tanlaş**.
 
 Özingiz yiğiş uçun (JDK 17 va Android SDK kerak):
@@ -46,7 +48,12 @@ cd android
 ```
 Haqiqiy reliz kaliti bilan imzolaş uçun `UZKEY_KEYSTORE_PATH`, `UZKEY_KEYSTORE_PASSWORD`, `UZKEY_KEY_ALIAS`,
 `UZKEY_KEY_PASSWORD` muhit özgaruvçilarini (CI da — xuddi şu nomdagi secret'lar va `UZKEY_KEYSTORE_BASE64`) bering.
-Aks holda reliz APK debug kaliti bilan imzolanadi.
+Aks holda reliz APK debug kaliti bilan imzolanadi va Play'ga yuklab bo'lmaydi.
+Kalitni bir buyruq bilan yasaş (çiqqan qiymatlarni GitHub → Settings → Secrets → Actions ga qöşing):
+```bash
+tools/release/create_android_keystore.sh uzkey-release.jks "CN=Ismingiz, O=Taşkilot, C=UZ"
+```
+`versionCode` CI da işga tuşiriliş raqamidan olinadi (yoki `UZKEY_VERSION_CODE` bilan beriladi).
 
 ### iOS
 iPhone ga örnatiş uçun Apple hisobi bilan imzolaş şart:
@@ -64,6 +71,22 @@ open UzKey.xcodeproj
 
 CI imzolanmagan `UzKey-unsigned.ipa` ni ham yasaydi — uni Sideloadly/AltStore orqali özingizning Apple ID ingiz bilan imzolab örnatiş mumkin.
 
+## Testlar
+
+| | Nima tekşiriladi | Qayerda |
+|---|---|---|
+| Android unit | takliflar, transliteratsiya, tugmalar, surib yoziş, haqiqiy luğatlar sifati va tezligi | `./gradlew testDebugUnitTest` |
+| Android UI | haqiqiy klaviatura emulyatorda: yoziş, Shift/Caps Lock, takliflar, til almaştiriş, belgilar, raqamli klaviatura, parol maydonida örganmaslik, alifbo ögirgiç, surib yoziş | CI: `tools/ci/android_ui_tests.sh` |
+| iOS unit | yadro mantiq, skrinşotlar, luğat xotirasi, takliflar tezligi | `xcodebuild test` (CI) |
+
+Bularning hammasi har bir push'da CI da işlaydi.
+
+## Reliz
+
+- Maxfiylik siyosati: [PRIVACY.md](PRIVACY.md) (özbekça, rusça, inglizça)
+- Do'kon matnlari va talablari: [docs/store/listing.md](docs/store/listing.md)
+- iOS ilova va kengaytmada Apple talab qilgan `PrivacyInfo.xcprivacy` bor; CI IPA ni tekşiradi.
+
 ## Tuzilma
 
 ```
@@ -71,6 +94,7 @@ shared/            umumiy maʼlumotlar (ikkala ilova ham şundan foydalanadi)
   layouts/*.json   tugmalar joylaşuvi (til, belgilar, raqamlar)
   dictionaries/    söz chastotalari luğatlari
   emoji.json       emoji toifalari
+  sounds/          tugma ovozlari (tools/build_sounds.py sintez qiladi)
 tools/             luğatlarni yasaş skripti va özbekça söz bazasi
 android/           Kotlin: InputMethodService + Jetpack Compose sozlamalar
 ios/               Swift: Keyboard Extension + SwiftUI sozlamalar (XcodeGen)
@@ -81,6 +105,8 @@ Luğatlarni qayta yasaş:
 pip install wordfreq
 python3 tools/build_dictionaries.py
 ```
-Özbekça sözlar `tools/uz_seed.txt` da joriy lotin yozuvida saqlanadi; skript ulardan yangi alifbo va kirill luğatlarini avtomatik yasaydi.
+Özbekça luğatlar (50 000 söz) yangiliklar korpusi (~120 mln söz) va özbek Vikipediyasidan sanalgan chastotalar
+(`tools/uz_corpus_freq.tsv`, uni **Uzbek dictionary** CI jobi `tools/build_uz_corpus.py` bilan yasaydi) va
+`tools/uz_seed.txt` dan joriy lotin yozuvida tuziladi; skript ulardan yangi alifbo va kirill luğatlarini avtomatik yasaydi.
 
 Litsenziyalar uçun [NOTICE.md](NOTICE.md) ga qarang.

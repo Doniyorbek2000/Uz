@@ -28,6 +28,8 @@ final class KeyboardSettings {
         static let theme = "theme"
         static let keyHeight = "key_height"
         static let keySound = "key_sound"
+        static let soundPack = "sound_pack"
+        static let soundVolume = "sound_volume"
         static let vibration = "vibration"
         static let autoCapitalize = "auto_capitalize"
         static let doubleSpacePeriod = "double_space_period"
@@ -63,6 +65,8 @@ final class KeyboardSettings {
             Key.keyPopup: true,
             Key.apostropheFix: true,
             Key.keySound: false,
+            Key.soundPack: SoundPacks.defaultPack,
+            Key.soundVolume: 0.7,
             Key.gestureTyping: true,
             Key.clipboardHistory: true,
         ])
@@ -103,6 +107,16 @@ final class KeyboardSettings {
     }
 
     var keySound: Bool { get { defaults.bool(forKey: Key.keySound) } set { defaults.set(newValue, forKey: Key.keySound) } }
+    /// Id of the key-click sound pack, see `SoundPacks`.
+    var soundPack: String {
+        get { defaults.string(forKey: Key.soundPack) ?? SoundPacks.defaultPack }
+        set { defaults.set(newValue, forKey: Key.soundPack) }
+    }
+    /// Key-click volume, 0–1.
+    var soundVolume: Double {
+        get { min(1, max(0, defaults.double(forKey: Key.soundVolume))) }
+        set { defaults.set(min(1, max(0, newValue)), forKey: Key.soundVolume) }
+    }
     var vibration: Bool { get { defaults.bool(forKey: Key.vibration) } set { defaults.set(newValue, forKey: Key.vibration) } }
     var autoCapitalize: Bool { get { defaults.bool(forKey: Key.autoCapitalize) } set { defaults.set(newValue, forKey: Key.autoCapitalize) } }
     var doubleSpacePeriod: Bool { get { defaults.bool(forKey: Key.doubleSpacePeriod) } set { defaults.set(newValue, forKey: Key.doubleSpacePeriod) } }

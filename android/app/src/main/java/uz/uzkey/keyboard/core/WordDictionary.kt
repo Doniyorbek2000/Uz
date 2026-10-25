@@ -10,11 +10,23 @@ class WordDictionary private constructor(
     private val keys: Array<String>,
     private val frequencies: IntArray,
 ) {
+    /** Letter-presence bitmask of every key, see [maskOf]. */
+    private val masks = LongArray(keys.size) { maskOf(keys[it]) }
+
+    /** Key lengths and first two letters as primitives, so full scans rarely touch the strings. */
+    private val lengths = IntArray(keys.size) { keys[it].length }
+    private val firstChars = CharArray(keys.size) { keys[it].getOrElse(0) { ' ' } }
+    private val secondChars = CharArray(keys.size) { keys[it].getOrElse(1) { ' ' } }
+
     val size: Int get() = words.size
 
     fun word(index: Int): String = words[index]
     fun key(index: Int): String = keys[index]
     fun frequency(index: Int): Int = frequencies[index]
+    fun mask(index: Int): Long = masks[index]
+    fun keyLength(index: Int): Int = lengths[index]
+    fun firstChar(index: Int): Char = firstChars[index]
+    fun secondChar(index: Int): Char = secondChars[index]
 
     fun indexOf(key: String): Int {
         val index = lowerBound(key)
@@ -47,29 +59,69 @@ class WordDictionary private constructor(
     companion object {
         val EMPTY = WordDictionary(emptyArray(), emptyArray(), IntArray(0))
 
-        /** Parses `word<TAB>frequency` lines. */
-        fun load(stream: InputStream, normalizer: KeyNormalizer = KeyNormalizer.DEFAULT): WordDictionary {
-            data class Row(val word: String, val key: String, val frequency: Int)
+        /** First line of files written by tools/build_dictionaries.py. */
+        const val SORTED_KEYS_HEADER = "#sorted-keys"
 
-            val rows = ArrayList<Row>(32_000)
-            BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).useLines { lines ->
+        /**
+         * One bit per letter present (letters hashed into 64 bits). An edit changes at most two bits, so two
+         * strings within edit distance d differ in at most 2·d bits — a cheap filter before computing distances.
+         */
+        fun maskOf(text: String, length: Int = text.length): Long {
+            var mask = 0L
+            for (i in 0 until length) mask = mask or (1L shl (text[i].code and 63))
+            return mask
+        }
+
+        /**
+         * Parses `word<TAB>frequency[<TAB>key]` lines. Bundled files carry their normalised keys and are
+         * already sorted by key, so loading is a single pass; any other input is normalised and sorted here.
+         */
+        fun load(stream: InputStream, normalizer: KeyNormalizer = KeyNormalizer.DEFAULT): WordDictionary {
+            val words = ArrayList<String>(52_000)
+            val keys = ArrayList<String>(52_000)
+            val frequencies = ArrayList<Int>(52_000)
+            var sorted = true
+            var keyed = false
+            BufferedReader(InputStreamReader(stream, Charsets.UTF_8), 1 shl 16).useLines { lines ->
                 lines.forEach { line ->
                     if (line.isBlank()) return@forEach
+                    if (line[0] == '#') {
+                        if (line.trim() == SORTED_KEYS_HEADER) keyed = true
+                        return@forEach
+                    }
                     val tab = line.indexOf('\t')
                     val word = if (tab < 0) line.trim() else line.substring(0, tab)
-                    val frequency = if (tab < 0) 1 else line.substring(tab + 1).trim().toIntOrNull() ?: 1
-                    if (word.isNotEmpty()) rows += Row(word, normalizer.normalize(word), frequency)
+                    if (word.isEmpty()) return@forEach
+                    val secondTab = if (tab < 0) -1 else line.indexOf('\t', tab + 1)
+                    val frequency = when {
+                        tab < 0 -> 1
+                        secondTab < 0 -> line.substring(tab + 1).trim().toIntOrNull() ?: 1
+                        else -> line.substring(tab + 1, secondTab).trim().toIntOrNull() ?: 1
+                    }
+                    // In keyed files a missing key column means the word is its own key; elsewhere keys are computed.
+                    // Most keys equal their word, and sharing the String halves the memory of the key column.
+                    val key = when {
+                        secondTab >= 0 -> line.substring(secondTab + 1).trim()
+                        keyed -> word
+                        else -> normalizer.normalize(word).let { if (it == word) word else it }
+                    }
+                    if (sorted && keys.isNotEmpty() && keys[keys.size - 1] >= key) sorted = false
+                    words += word
+                    keys += key
+                    frequencies += frequency
                 }
             }
-            rows.sortWith(compareBy<Row> { it.key }.thenByDescending { it.frequency })
-            val deduplicated = ArrayList<Row>(rows.size)
-            for (row in rows) {
-                if (deduplicated.isEmpty() || deduplicated.last().key != row.key) deduplicated += row
+            if (sorted) return WordDictionary(words.toTypedArray(), keys.toTypedArray(), frequencies.toIntArray())
+
+            val order = words.indices.sortedWith(compareBy<Int> { keys[it] }.thenByDescending { frequencies[it] })
+            val kept = ArrayList<Int>(order.size)
+            for (index in order) {
+                if (kept.isEmpty() || keys[kept.last()] != keys[index]) kept += index
             }
             return WordDictionary(
-                Array(deduplicated.size) { deduplicated[it].word },
-                Array(deduplicated.size) { deduplicated[it].key },
-                IntArray(deduplicated.size) { deduplicated[it].frequency },
+                Array(kept.size) { words[kept[it]] },
+                Array(kept.size) { keys[kept[it]] },
+                IntArray(kept.size) { frequencies[kept[it]] },
             )
         }
     }
