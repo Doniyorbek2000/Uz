@@ -82,9 +82,7 @@ class KeyboardUiTest {
     fun doubleSpaceEndsSentence() {
         focus(TEXT)
         type("salom")
-        val space = key(string(R.string.a11y_space))
-        space.click()
-        space.click()
+        doubleTap(key(string(R.string.a11y_space)))
         assertFieldText(TEXT, "Salom. ")
     }
 
@@ -249,7 +247,7 @@ class KeyboardUiTest {
     private fun key(label: String): UiObject2 =
         device.wait(Until.findObject(keyDesc(label)), TIMEOUT_MS) ?: throw AssertionError("key “$label” not found")
 
-    /** Two taps within the keyboard's double-tap window; UiObject2.click() is too slow for that. */
+    /** Two taps within the keyboard's double-tap windows (shift, space); UiObject2.click() is too slow for that. */
     private fun doubleTap(target: UiObject2) {
         val bounds = target.visibleBounds
         val x = bounds.exactCenterX()

@@ -90,7 +90,8 @@ class WordDictionary private constructor(
                         secondTab < 0 -> line.substring(tab + 1).trim().toIntOrNull() ?: 1
                         else -> line.substring(tab + 1, secondTab).trim().toIntOrNull() ?: 1
                     }
-                    val key = if (secondTab >= 0) line.substring(secondTab + 1).trim() else normalizer.normalize(word)
+                    // Most keys equal their word; sharing the String halves the memory of the key column.
+                    val key = if (secondTab >= 0) line.substring(secondTab + 1).trim() else normalizer.normalize(word).let { if (it == word) word else it }
                     if (sorted && keys.isNotEmpty() && keys[keys.size - 1] >= key) sorted = false
                     words += word
                     keys += key
