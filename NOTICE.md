@@ -22,3 +22,8 @@ contain word frequencies counted by `tools/build_uz_corpus.py` from:
 merged with the project's own seed list `tools/uz_seed.txt`. Only word forms and their counts are kept,
 no running text. Because part of the input is CC BY-SA, these files are distributed under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
+## Key sounds
+
+`shared/sounds/` is synthesised by `tools/build_sounds.py` from oscillators and filtered noise; it contains
+no recorded or third-party audio and is part of this project.

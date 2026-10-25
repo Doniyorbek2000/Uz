@@ -15,6 +15,7 @@ Android (Kotlin) va iOS (Swift) uçun alohida native ilova, tugmalar joylaşuvi 
 | **Tugmalar** | Bosib turganda qöşimça harflar (o → ö, oʻ, ó…), raqam belgilari, Caps Lock (Shift ×2), böş joyni surib kursorni siljitiş |
 | **Qulayliklar** | Ikki böş joy → nuqta, avtomatik boş harf, emoji paneli (700+), raqam/telefon maydonlari uçun raqamli klaviatura |
 | **Surib yoziş** | Barmoqni kötarmasdan harflar ustida surib söz yoziş (5 ta tilning hammasida) |
+| **Tugma ovozlari** | 7 xil ovoz: Mexanik, Yozuv maşinkasi, Pufakçalar, Tomçilar, Yumşoq, Marimba (har harf öz notasi — yozganda kuy çiqadi), Retro 8-bit + tizim ovozi; balandlik sozlanadi, sozlamalarda eşitib köriş mumkin |
 | **Bufer tarixi** | Oxirgi nusxa olingan matnlar (24 soat, muhimlarini saqlab qöyiş mumkin; parollar saqlanmaydi) |
 | **Ovoz bilan yoziş** | Android: 🎤 tugmasi Google ovozli yozişiga ötadi; iOS: tizimning diktovka tugmasi (klaviatura ostida) |
 | **Maxsus imkoniyatlar** | TalkBack va VoiceOver: har bir tugma övozli öqiladi, barmoqni kötarib yoziş |
@@ -93,6 +94,7 @@ shared/            umumiy maʼlumotlar (ikkala ilova ham şundan foydalanadi)
   layouts/*.json   tugmalar joylaşuvi (til, belgilar, raqamlar)
   dictionaries/    söz chastotalari luğatlari
   emoji.json       emoji toifalari
+  sounds/          tugma ovozlari (tools/build_sounds.py sintez qiladi)
 tools/             luğatlarni yasaş skripti va özbekça söz bazasi
 android/           Kotlin: InputMethodService + Jetpack Compose sozlamalar
 ios/               Swift: Keyboard Extension + SwiftUI sozlamalar (XcodeGen)

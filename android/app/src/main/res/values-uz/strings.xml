@@ -78,4 +78,16 @@
     <string name="pref_clipboard">Bufer tarixi</string>
     <string name="pref_clipboard_desc">Nusxa olingan matnlarni bir kun saqlaş (parollar saqlanmaydi)</string>
     <string name="tip_gesture">Barmoqni kötarmasdan harflar ustida surib yozing</string>
+    <string name="pref_sound_desc">Har bir tugma bosilganda ovoz çiqadi; telefon ovozsiz rejimda bölsa çalinmaydi</string>
+    <string name="sound_pack_title">Ovoz</string>
+    <string name="sound_volume">Balandlik</string>
+    <string name="sound_preview">Eşitib köriş uçun ovozni bosing</string>
+    <string name="sound_system">Tizim</string>
+    <string name="sound_mechanical">Mexanik</string>
+    <string name="sound_typewriter">Yozuv maşinkasi</string>
+    <string name="sound_bubble">Pufakçalar</string>
+    <string name="sound_drop">Tomçilar</string>
+    <string name="sound_soft">Yumşoq</string>
+    <string name="sound_marimba">Marimba</string>
+    <string name="sound_retro">Retro 8-bit</string>
 </resources>

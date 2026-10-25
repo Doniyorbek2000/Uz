@@ -28,6 +28,7 @@ UzKey — özbek tilida tez va xatosiz yoziş uçun yaratilgan klaviatura.
 • Eski yozuvni tuşunadi: o' → ö, g' → ğ, "yaxsh" yozsangiz "yaxşi" taklif qilinadi
 • Bir tugma bilan matnni kirill ↔ lotin ↔ yangi alifboga ögiriş
 • Surib yoziş — barmoqni kötarmasdan söz yoziş
+• 7 xil tugma ovozi: mexanik, yozuv maşinkasi, pufakçalar, tomçilar, yumşoq, marimba (har tugma — nota) va retro 8-bit; balandligi sozlanadi
 • Siz yozgan sözlarni eslab qoladi — faqat telefoningizda
 • Bufer tarixi, emoji paneli, raqamli klaviatura, böş joyni surib kursorni siljitiş
 • 5 ta mavzu, 3 xil tugma balandligi, planşet va yotiq holat uçun moslaşgan
@@ -53,6 +54,7 @@ UzKey — клавиатура для быстрого и грамотного �
 • Понимает старое написание: o' → ö, g' → ğ, «yaxsh» → «yaxşi»
 • Перевод текста между кириллицей, латиницей и новым алфавитом одной кнопкой
 • Ввод свайпом
+• 7 наборов звуков клавиш: механическая, печатная машинка, пузырьки, капли, мягкий, маримба (каждая клавиша — нота) и ретро 8-бит; громкость настраивается
 • Запоминает ваши слова — только на устройстве
 • История буфера обмена, эмодзи, цифровая клавиатура, перемещение курсора свайпом по пробелу
 • 5 тем, 3 высоты клавиш, раскладки для планшетов и альбомной ориентации
@@ -78,6 +80,7 @@ UzKey is a keyboard built for fast, correct typing in Uzbek.
 • Understands legacy spelling: o' → ö, g' → ğ, "yaxsh" suggests "yaxşi"
 • Convert text between Cyrillic, Latin and the new alphabet with one tap
 • Swipe typing in all five languages
+• 7 key sound packs — mechanical, typewriter, bubbles, water drops, soft, marimba (every key plays a note) and retro 8-bit — with adjustable volume
 • Learns your words — on your device only
 • Clipboard history, emoji panel, number pad, space-bar cursor control
 • 5 themes, 3 key heights, layouts tuned for tablets and landscape

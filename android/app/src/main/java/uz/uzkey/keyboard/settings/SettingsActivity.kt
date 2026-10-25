@@ -52,11 +52,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,13 +71,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uz.uzkey.keyboard.R
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import uz.uzkey.keyboard.core.KeyType
 import uz.uzkey.keyboard.core.LayoutIds
 import uz.uzkey.keyboard.core.LayoutParser
+import uz.uzkey.keyboard.ime.KeySoundPlayer
 import uz.uzkey.keyboard.ime.KeyboardTheme
 
 class SettingsActivity : ComponentActivity() {
@@ -178,6 +190,7 @@ private fun SettingsScreen(
         item { ThemeCard(settings) }
         item { TypingCard(settings) }
         item { KeysCard(settings) }
+        item { SoundCard(settings) }
         item { DictionaryCard(onClearLearned) }
         item { TipsCard() }
         item { PrivacyCard() }
@@ -529,7 +542,6 @@ private fun KeysCard(settings: KeyboardSettings) {
             SwitchRow(stringResource(R.string.pref_number_hints), stringResource(R.string.pref_number_hints_desc), settings.numberHints) { settings.numberHints = it }
             SwitchRow(stringResource(R.string.pref_popup), null, settings.keyPopup) { settings.keyPopup = it }
             SwitchRow(stringResource(R.string.pref_vibration), null, settings.vibration) { settings.vibration = it }
-            SwitchRow(stringResource(R.string.pref_sound), null, settings.keySound) { settings.keySound = it }
             Text(
                 stringResource(R.string.key_height_title),
                 style = MaterialTheme.typography.bodyLarge,
@@ -560,6 +572,99 @@ private fun KeysCard(settings: KeyboardSettings) {
             }
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun SoundCard(settings: KeyboardSettings) {
+    val context = LocalContext.current
+    val player = remember { KeySoundPlayer(context.applicationContext) }
+    DisposableEffect(player) { onDispose { player.release() } }
+    val scope = rememberCoroutineScope()
+    var previewJob by remember { mutableStateOf<Job?>(null) }
+    var enabled by remember { mutableStateOf(settings.keySound) }
+    var pack by remember { mutableStateOf(settings.soundPack) }
+    var volume by remember { mutableFloatStateOf(settings.soundVolume.toFloat()) }
+
+    // A short typed phrase lets the character of a pack come through (and plays a tune with musical ones).
+    fun preview(id: String) {
+        previewJob?.cancel()
+        previewJob = scope.launch {
+            for ((type, label) in PREVIEW_STROKES) {
+                player.play(id, type, label, volume / 100f, ignoreRingerMode = true)
+                delay(if (type == KeyType.SPACE) 170 else 120)
+            }
+        }
+    }
+
+    SectionCard(stringResource(R.string.sound_pack_title)) {
+        Column(Modifier.padding(vertical = 4.dp)) {
+            SwitchRow(stringResource(R.string.pref_sound), stringResource(R.string.pref_sound_desc), enabled) {
+                enabled = it
+                settings.keySound = it
+                if (it) preview(pack)
+            }
+            if (enabled) {
+                Text(
+                    stringResource(R.string.sound_preview),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    player.packIds.forEach { id ->
+                        val (emoji, name) = soundPackLabel(id)
+                        FilterChip(
+                            selected = pack == id,
+                            onClick = {
+                                pack = id
+                                settings.soundPack = id
+                                preview(id)
+                            },
+                            label = { Text("$emoji  ${stringResource(name)}") },
+                        )
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                ) {
+                    Text(stringResource(R.string.sound_volume), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Text("${volume.roundToInt()}%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Slider(
+                    value = volume,
+                    onValueChange = { volume = it },
+                    onValueChangeFinished = {
+                        settings.soundVolume = volume.roundToInt()
+                        preview(pack)
+                    },
+                    valueRange = 0f..100f,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+private val PREVIEW_STROKES = listOf(
+    KeyType.CHAR to "s", KeyType.CHAR to "a", KeyType.CHAR to "l", KeyType.CHAR to "o", KeyType.CHAR to "m",
+    KeyType.SPACE to null, KeyType.BACKSPACE to null, KeyType.ENTER to null,
+)
+
+private fun soundPackLabel(id: String): Pair<String, Int> = when (id) {
+    "mechanical" -> "⌨️" to R.string.sound_mechanical
+    "typewriter" -> "📜" to R.string.sound_typewriter
+    "bubble" -> "🫧" to R.string.sound_bubble
+    "drop" -> "💧" to R.string.sound_drop
+    "soft" -> "☁️" to R.string.sound_soft
+    "marimba" -> "🎵" to R.string.sound_marimba
+    "retro" -> "👾" to R.string.sound_retro
+    else -> "📱" to R.string.sound_system
 }
 
 @Composable

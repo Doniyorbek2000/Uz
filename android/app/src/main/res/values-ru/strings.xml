@@ -78,4 +78,16 @@
     <string name="pref_clipboard">История буфера обмена</string>
     <string name="pref_clipboard_desc">Хранить скопированный текст сутки (пароли не сохраняются)</string>
     <string name="tip_gesture">Вводите слова, не отрывая палец от букв</string>
+    <string name="pref_sound_desc">Звук при каждом нажатии; не звучит, когда телефон в беззвучном режиме</string>
+    <string name="sound_pack_title">Звук</string>
+    <string name="sound_volume">Громкость</string>
+    <string name="sound_preview">Нажмите на звук, чтобы послушать</string>
+    <string name="sound_system">Системный</string>
+    <string name="sound_mechanical">Механическая</string>
+    <string name="sound_typewriter">Печатная машинка</string>
+    <string name="sound_bubble">Пузырьки</string>
+    <string name="sound_drop">Капли</string>
+    <string name="sound_soft">Мягкий</string>
+    <string name="sound_marimba">Маримба</string>
+    <string name="sound_retro">Ретро 8-бит</string>
 </resources>

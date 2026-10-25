@@ -55,6 +55,25 @@ enum L10n {
     static var popup: String { pick("Bosilgan tugmani kattalaştiriş", "Увеличивать нажатую клавишу", "Magnify key on press") }
     static var vibration: String { pick("Tebraniş", "Вибрация", "Haptics") }
     static var sound: String { pick("Tovuş", "Звук", "Sound") }
+    static var soundTitle: String { pick("Ovoz", "Звук", "Sound") }
+    static var soundVolume: String { pick("Balandlik", "Громкость", "Volume") }
+    static var soundFooter: String {
+        pick("Eşitib köriş uçun ovozni bosing. Klaviaturada ovozlar «Töliq ruxsat» bilan işlaydi (usiz tizim çiqillaşi çalinadi) va telefon ovozsiz rejimda bölsa eşitilmaydi.",
+             "Нажмите на звук, чтобы послушать. В клавиатуре звуки работают с «Полным доступом» (без него — системный щелчок) и не слышны в беззвучном режиме.",
+             "Tap a sound to hear it. In the keyboard, sound packs need Full Access (otherwise the system click plays) and stay silent when the phone is on silent.")
+    }
+    static func soundPackName(_ id: String) -> String {
+        switch id {
+        case "mechanical": return "⌨️  " + pick("Mexanik", "Механическая", "Mechanical")
+        case "typewriter": return "📜  " + pick("Yozuv maşinkasi", "Печатная машинка", "Typewriter")
+        case "bubble": return "🫧  " + pick("Pufakçalar", "Пузырьки", "Bubbles")
+        case "drop": return "💧  " + pick("Tomçilar", "Капли", "Water drops")
+        case "soft": return "☁️  " + pick("Yumşoq", "Мягкий", "Soft")
+        case "marimba": return "🎵  " + pick("Marimba", "Маримба", "Marimba")
+        case "retro": return "👾  " + pick("Retro 8-bit", "Ретро 8-бит", "Retro 8-bit")
+        default: return "📱  " + pick("Tizim", "Системный", "System")
+        }
+    }
     static var keyHeight: String { pick("Tugma balandligi", "Высота клавиш", "Key height") }
     static func keyHeightName(_ height: KeyHeight) -> String {
         switch height {

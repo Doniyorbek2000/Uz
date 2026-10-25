@@ -102,6 +102,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         evictDictionaries(keeping: [currentLayout.dictionary])
+        soundPlayer.release()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -140,6 +141,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         super.viewWillDisappear(animated)
         keyboardView.cancelAllPointers()
         saveLearnedWords()
+        soundPlayer.suspend()
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -453,20 +455,26 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         }
     }
 
-    private func feedback(_ type: KeyType) {
+    private lazy var soundPlayer = KeySoundPlayer()
+
+    private func feedback(_ type: KeyType, label: String? = nil) {
         if settings.vibration && hasFullAccess {
             feedbackGenerator.impactOccurred()
             feedbackGenerator.prepare()
         }
         if settings.keySound {
-            UIDevice.current.playInputClick()
+            // Sound packs need audio playback, which keyboards get only with Full Access; the system click
+            // (respecting the system "Keyboard Clicks" setting) is the fallback.
+            let played = hasFullAccess &&
+                soundPlayer.play(packId: settings.soundPack, type: type, label: label, volume: Float(settings.soundVolume))
+            if !played { UIDevice.current.playInputClick() }
         }
     }
 
     // MARK: KeyboardViewDelegate
 
     func keyDown(_ key: KeySpec) {
-        feedback(key.type)
+        feedback(key.type, label: key.label)
         switch key.type {
         case .shift: handleShiftDown()
         case .backspace: handleBackspace()
