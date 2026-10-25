@@ -24,7 +24,7 @@ enum KeyboardStrings {
     static var enter: String { pick("Kiritiş", "Ввод", "Return") }
     static var symbols: String { pick("Belgilar", "Символы", "Symbols") }
     static var letters: String { pick("Harflar", "Буквы", "Letters") }
-    static var language: String { pick("Tilni almaştiriş", "Сменить язык", "Switch language") }
+    static var switchLanguage: String { pick("Tilni almaştiriş", "Сменить язык", "Switch language") }
     static var nextKeyboard: String { pick("Keyingi klaviatura", "Следующая клавиатура", "Next keyboard") }
     static var clipboard: String { pick("Bufer", "Буфер обмена", "Clipboard") }
     static var clear: String { pick("Tozalaş", "Очистить", "Clear") }

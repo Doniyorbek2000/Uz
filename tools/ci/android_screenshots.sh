@@ -16,6 +16,11 @@ adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
 adb install -r "$APK"
+# The input method service becomes visible to the system a few seconds after installation.
+for _ in $(seq 1 30); do
+  if adb shell ime list -a -s | grep -q "$IME"; then break; fi
+  sleep 2
+done
 adb shell ime enable "$IME"
 adb shell ime set "$IME"
 

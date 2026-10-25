@@ -721,7 +721,7 @@ final class KeyboardView: UIView {
         case .enter: return KeyboardStrings.enter
         case .symbols, .symbolsMore: return KeyboardStrings.symbols
         case .letters: return KeyboardStrings.letters
-        case .language: return KeyboardStrings.language
+        case .language: return KeyboardStrings.switchLanguage
         case .globe: return KeyboardStrings.nextKeyboard
         case .emoji: return "Emoji"
         }
