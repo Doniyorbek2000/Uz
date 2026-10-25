@@ -1,0 +1,113 @@
+name: UzKey
+options:
+  bundleIdPrefix: uz.uzkey
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Set your Apple developer team ID here (or in Xcode → Signing & Capabilities) to run on a device.
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+targets:
+  UzKey:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Shared
+      - path: ../shared
+        type: folder
+        buildPhase: resources
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: UzKey
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleURLTypes:
+          - CFBundleURLName: uz.uzkey.app
+            CFBundleURLSchemes: [uzkey]
+    entitlements:
+      path: App/UzKey.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.uz.uzkey.keyboard
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uz.uzkey.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - target: UzKeyKeyboard
+        embed: true
+  UzKeyKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Keyboard
+      - path: Shared
+      - path: ../shared
+        type: folder
+        buildPhase: resources
+    info:
+      path: Keyboard/Info.plist
+      properties:
+        CFBundleDisplayName: UzKey
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: uz
+            RequestsOpenAccess: true
+    entitlements:
+      path: Keyboard/UzKeyKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.uz.uzkey.keyboard
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uz.uzkey.app.keyboard
+        TARGETED_DEVICE_FAMILY: "1,2"
+        APPLICATION_EXTENSION_API_ONLY: YES
+  UzKeyTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+      - path: Shared
+      - path: ../shared
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uz.uzkey.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  UzKey:
+    build:
+      targets:
+        UzKey: all
+        UzKeyKeyboard: all
+    test:
+      targets:
+        - UzKeyTests

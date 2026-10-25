@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Key cap -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,32h40a8,8 0,0 1,8 8v30a8,8 0,0 1,-8 8h-40a8,8 0,0 1,-8 -8v-30a8,8 0,0 1,8 -8z" />
+    <!-- Letter Ö: ring -->
+    <path
+        android:fillColor="#0B6FA4"
+        android:pathData="M54,46a11,11 0,1 0,0.01 0zM54,51a6,6 0,1 1,-0.01 0z"
+        android:fillType="evenOdd" />
+    <!-- Letter Ö: dots -->
+    <path
+        android:fillColor="#0B6FA4"
+        android:pathData="M48,37.5a2.5,2.5 0,1 0,0.01 0zM60,37.5a2.5,2.5 0,1 0,0.01 0z" />
+</vector>

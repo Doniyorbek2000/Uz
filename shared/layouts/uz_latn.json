@@ -1,0 +1,28 @@
+{
+  "id": "uz_latn",
+  "name": "Oʻzbekcha (joriy alifbo)",
+  "spaceLabel": "Oʻzbekcha",
+  "short": "OʻZ",
+  "locale": "uz",
+  "dictionary": "uz_latn",
+  "legacyConversion": false,
+  "rows": [
+    ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "gʻ"],
+    ["a", "s", "d", "f", "g", "h", "j", "k", "l", "oʻ", "ʼ"],
+    [{"t": "shift"}, "z", "x", "c", "v", "b", "n", "m", {"t": "bksp"}]
+  ],
+  "alternates": {
+    "o": ["oʻ", "ó", "ö"],
+    "g": ["gʻ"],
+    "oʻ": ["o", "ö"],
+    "gʻ": ["g", "ğ"],
+    "ʼ": ["ʻ", "'", "’", "`"],
+    "s": ["sh"],
+    "c": ["ch"],
+    "n": ["ng", "ñ"],
+    "a": ["á", "à", "ä"],
+    "e": ["é", "è", "ë"],
+    "i": ["í", "ì", "ï"],
+    "u": ["ú", "ü"]
+  }
+}

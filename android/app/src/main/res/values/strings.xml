@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">UzKey</string>
+    <string name="ime_name" translatable="false">UzKey</string>
+    <string name="settings_title">Settings</string>
+    <string name="tagline">Keyboard for Uzbek, Russian and English</string>
+    <string name="setup_title">Setup</string>
+    <string name="step_enable_title">1. Enable the keyboard</string>
+    <string name="step_enable_desc">Turn on UzKey in the system list of keyboards.</string>
+    <string name="step_enable_button">Enable</string>
+    <string name="step_select_title">2. Select UzKey</string>
+    <string name="step_select_desc">Make UzKey your current keyboard.</string>
+    <string name="step_select_button">Select</string>
+    <string name="setup_done">All set! UzKey is your keyboard now.</string>
+    <string name="try_hint">Try typing here</string>
+    <string name="languages_title">Languages</string>
+    <string name="languages_desc">The 🌐 key switches between the selected languages.</string>
+    <string name="theme_title">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_black">Black (AMOLED)</string>
+    <string name="theme_blue">Blue</string>
+    <string name="typing_title">Typing</string>
+    <string name="pref_suggestions">Word suggestions</string>
+    <string name="pref_suggestions_desc">Show completions and corrections above the keys</string>
+    <string name="pref_autocorrect">Auto-correct</string>
+    <string name="pref_autocorrect_desc">Fix obvious typos when you press space</string>
+    <string name="pref_learn">Learn new words</string>
+    <string name="pref_learn_desc">Remember words you type to suggest them later</string>
+    <string name="pref_autocap">Auto-capitalization</string>
+    <string name="pref_double_space">Double-space period</string>
+    <string name="pref_double_space_desc">Two spaces insert a period and a space</string>
+    <string name="pref_apostrophe">Fix apostrophes</string>
+    <string name="pref_apostrophe_desc">o\' → ö in the new alphabet, o\' → oʻ in the current one</string>
+    <string name="keys_title">Keys</string>
+    <string name="pref_number_row">Number row</string>
+    <string name="pref_number_hints">Number hints</string>
+    <string name="pref_number_hints_desc">Long-press the top row to type digits</string>
+    <string name="pref_popup">Magnify key on press</string>
+    <string name="pref_vibration">Vibration</string>
+    <string name="pref_sound">Sound</string>
+    <string name="key_height_title">Key height</string>
+    <string name="key_height_small">Small</string>
+    <string name="key_height_normal">Medium</string>
+    <string name="key_height_large">Large</string>
+    <string name="dictionary_title">Dictionary</string>
+    <string name="clear_learned">Delete learned words</string>
+    <string name="clear_learned_done">Learned words deleted</string>
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_text">UzKey never connects to the internet: the app has no network permission. Everything you type stays on your phone.</string>
+    <string name="tips_title">Tips</string>
+    <string name="tip_cursor">Slide on the space bar to move the cursor</string>
+    <string name="tip_long_press">Hold a letter for extra characters (o → ö, oʻ)</string>
+    <string name="tip_caps">Double-tap Shift for Caps Lock</string>
+    <string name="tip_switch">Hold 🌐 or space to switch to another keyboard</string>
+    <string name="tip_convert">The ⇄ button converts text to the active Uzbek alphabet (Cyrillic ↔ Latin ↔ new Latin)</string>
+    <string name="version">Version %1$s</string>
+    <string name="done_badge">Done</string>
+    <string name="languages_min_one">Keep at least one language</string>
+</resources>

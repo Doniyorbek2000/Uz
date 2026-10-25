@@ -1,0 +1,95 @@
+# Uzbek seed lexicon in the current Latin alphabet.
+# Notation: o' / g' = oʻ / gʻ, backtick ` = tutuq belgisi (ʼ).
+# "@ N" starts a frequency tier (0-255); words inside a tier decay slightly by order.
+@ 250
+va bu bilan ham uchun u men biz siz ular sen bir bor yo'q emas edi deb kerak lekin ammo shu o'z har endi juda
+ko'p hali yana faqat eng qanday nima kim nega ha xo'p mayli rahmat salom iltimos albatta
+@ 230
+menga senga unga bizga sizga ularga meni seni uni bizni sizni ularni mening sening uning bizning sizning ularning
+mendan sendan undan bizdan sizdan ulardan menda senda unda bizda sizda ularda o'zim o'zing o'zi o'zimiz o'zingiz o'zlari
+bular shular mana ana shunday bunday shuning buning bunga shunga bundan shundan bunda shunda shuni buni
+qachon qayerda qayerga qayerdan qancha nechta qaysi nimaga nimani kimga kimni kimning nimadir kimdir qayerdadir
+agar chunki yoki ya`ni hatto balki aslida umuman hamma hammasi barcha butun ba`zi ba`zan doim hech hamisha
+bo'ldi bo'ladi bo'lgan bo'lib bo'lsa bo'lishi bo'lish bo'lmaydi bo'lmagan bo'lmasa bo'lyapti bo'ladimi bo'lsin
+qildi qiladi qilgan qilib qilish qilishi qilaman qilamiz qilasiz qiling qilmang qilyapman qilyapti qilyapsiz qilyapsan
+dedi deydi degan deyish ayting aytdi aytadi aytgan aytish aytaman aytib aytdim
+@ 210
+keldi keladi kelgan kelib kelish keling kelaman kelyapman kelyapti kelasanmi kelamiz kelasiz kelmadi kelmaydi
+ketdi ketadi ketgan ketib ketish keting ketyapman ketyapti ketaman ketamiz
+bordi boradi borgan borib borish boraman boramiz borasanmi boryapman bormi bormadi
+oldi oladi olgan olib olish oling olaman olamiz olmadim olasizmi
+berdi beradi bergan berib berish bering beraman beramiz bermadi berasizmi
+ko'rdi ko'radi ko'rgan ko'rib ko'rish ko'ring ko'rdim ko'rdingmi ko'raman ko'ramiz ko'rishamiz
+bilaman biladi bildi bilgan bilish bilmayman bilasizmi bilasanmi bildingmi bildim bilmadim bilib bilan
+istayman xohlayman xohlaysizmi istaysizmi yozdi yozadi yozish yozing yozaman yozyapman yozib yozdim
+o'qidi o'qiydi o'qish o'qing o'qiyman o'qiyapman o'qib o'qidim
+gapirdi gapiradi gapirish gapiring gapiraman gaplashamiz gaplashdik so'radi so'rash so'rayman so'rang
+ishladi ishlaydi ishlash ishlayman ishlayapman ishlab ishlamaydi ishlayapti
+turdi turadi turib turaman yashaydi yashash yashayman sevaman sevadi sevgan
+kutaman kutib kuting kutyapman kutdim chiqdi chiqadi chiqib chiqish chiqing
+kirdi kiradi kirib kirish kiring o'tdi o'tadi o'tib o'tgan o'tish tushdi tushadi tushib
+tushunaman tushunmadim tushundim tushunarli tushuntiring eshitdim eshitib eshiting eshitaman
+yubordim yuboring yuboraman yubordi yuborish qo'ng'iroq qo'ng'iroq qildim qo'ng'iroq qiling
+topdim topdi topish toping topaman yordam bering yordamlashing yordamlashaman
+boshladi boshlaydi boshlash boshlaymiz tugadi tugaydi tugatdim tugatish
+o'ylayman o'ylab o'ylash o'ylaysizmi o'yladim eslayman esladim unutdim unutmang
+yeydi yeyish yedim ichdim ichish ichamiz uxladim uxlash uxlayapman dam olish
+@ 200
+yaxshi yomon katta kichik yangi eski chiroyli go'zal oson qiyin tez sekin uzoq yaqin issiq sovuq
+oq qora qizil yashil ko'k sariq baland past to'g'ri noto'g'ri muhim kerakli asosiy boshqa birinchi ikkinchi oxirgi
+zo'r ajoyib rost qiziq qiziqarli mazali shirin achchiq toza iflos tinch xursand xafa charchagan band bo'sh
+mumkin mumkinmi kerakmi yo'qmi rostmi to'g'rimi yaxshimi qalaysiz qalay yaxshimisiz charchamang sog'misiz
+@ 190
+odam odamlar inson kishi bola bolalar ota ona aka uka opa singil oila do'st do'stlar do'stim azizim jonim
+onam otam akam opam ukam singlim bolam farzand er xotin turmush to'y bayram tug'ilgan muborak tabrik sovg'a
+uy ish vaqt kun yil oy hafta soat daqiqa bugun ertaga kecha hozir keyin oldin avval so'ng ertalab kechqurun tun tushlik
+non suv choy ovqat osh go'sht meva olma pul narx so'm dollar bozor do'kon shahar qishloq mamlakat davlat
+til so'z gap xat kitob maktab universitet o'qituvchi talaba o'quvchi dars ilm bilim savol javob muammo yechim yordam
+salomatlik sog'liq sevgi muhabbat yurak hayot dunyo tabiat havo yer osmon quyosh yulduz dengiz daryo tog' yo'l
+mashina avtobus poyezd samolyot metro taksi telefon internet kompyuter dastur ilova xabar rasm video musiqa kino o'yin
+futbol sport ishchi rahbar hukumat qonun prezident xalq millat tarix madaniyat san`at ta`lim ma`no ma`lumot jamiyat
+iqtisodiyot bank kredit to'lov karta hisob raqam manzil ko'cha xona eshik deraza stol stul kiyim ko'ylak poyabzal
+kasal shifokor kasalxona dori bosh ko'z qo'l oyoq yuz tish quloq burun og'iz tana
+@ 180
+bir ikki uch to'rt besh olti yetti sakkiz to'qqiz o'n yigirma o'ttiz qirq ellik oltmish yetmish sakson to'qson ming million milliard
+dushanba seshanba chorshanba payshanba juma shanba yakshanba
+yanvar fevral mart aprel may iyun iyul avgust sentyabr oktyabr noyabr dekabr
+bahor yoz kuz qish ob-havo yomg'ir qor shamol bulut
+@ 170
+assalomu alaykum va`alaykum xayr kechirasiz marhamat xush kelibsiz tabriklayman omad baxt baxtli
+ishxona ofis uchrashuv majlis loyiha vazifa reja maqsad natija imkoniyat taklif fikr fikrim fikringiz muhokama qaror
+masala holat sharoit xizmat mijoz buyurtma yetkazib chegirma aksiya sotish sotib sotuv narxi arzon qimmat bepul pullik
+naqd o'tkazma hisobga to'lash to'ladim to'lang tekshirish tekshiring tasdiqlash ro'yxat ro'yxatdan parol login kod
+alifbo harf harflar lotin kirill yozuv klaviatura imlo qoida grammatika matn tarjima tarjimon lug'at
+@ 160
+Oʻzbekiston Toshkent Samarqand Buxoro Xiva Farg'ona Andijon Namangan Navoiy Qarshi Termiz Nukus Jizzax Guliston Urganch
+Qo'qon Marg'ilon Chirchiq Olmaliq Angren Shahrisabz Qoraqalpog'iston Xorazm Surxondaryo Qashqadaryo Sirdaryo
+Rossiya Moskva Amerika Qozog'iston Tojikiston Qirg'iziston Turkmaniston Turkiya Xitoy Koreya Yaponiya Germaniya Angliya Fransiya
+Alloh Ramazon Navro'z Hayit Qurbon
+Ali Aziz Jasur Dilnoza Madina Nodira Sardor Bobur Jahongir Shahzod Malika Gulnora Dilshod Sherzod Rustam Akmal Feruza
+Nigora Zarina Kamola Doniyor Muhammad Abdulloh Otabek Ulug'bek Temur Amir Sevara Shahlo Laylo Javohir Islom Asadbek
+@ 150
+ishim ishing ishimiz ishingiz ishda ishga ishdan ishlar ishlari uyda uyga uydan uyim uying uyimiz uyingiz uylar
+vaqtda vaqtim vaqting vaqtingiz vaqtida kunlar kuni kunda kuniga yili yilda yillar yilning oyda haftada soatda
+bolalarni bolalarga bolalarning odamlarga odamlarni odamlarning do'stlarim do'stlarga oilam oilamiz oilangiz
+pulim pulni pulga pullar telefonim telefoningiz telefonni telefonga raqamim raqamingiz manzilim manzilingiz
+shaharda shaharga qishloqda maktabda maktabga universitetda darsda darsga kitobni kitoblar xabarni xabar yozing
+o'zbek o'zbekcha o'zbekchada ruscha inglizcha tilida tilini tillar so'zlar so'zni gapni javobni savolni savollar
+yaxshiroq yomonroq kattaroq kichikroq ko'proq kamroq tezroq sekinroq uzoqroq yaqinroq
+@ 140
+bugungi ertangi kechagi hozirgi keyingi oldingi har kuni har doim hech qachon tez-tez ba`zida ko'pincha odatda
+albatta balki ehtimol shubhasiz aniq aniqrog'i masalan xususan ayniqsa shuningdek bundan tashqari demak natijada
+o'rtasida orasida ichida tashqarida ustida ostida oldida orqasida yonida tomon tomonidan bo'yicha haqida qarshi
+o'rniga sababli tufayli sari qadar beri buyon keyin avvalgi so'nggi
+ishonaman ishonch ishonchli ishoning umid umidvor tilayman tilak tilaklar orzu orzuim xohish
+yaxshilik yomonlik kuch kuchli zaif sabr sabrli harakat muvaffaqiyat g'alaba mag'lubiyat xato xatolik
+@ 130
+dasturchi dasturlash veb sayt server ma`lumotlar baza tizim yangilash yuklab yuklash o'rnatish sozlamalar
+ekran tugma bosing bosish tanlang tanlash saqlash saqlang o'chirish o'chiring nusxa ko'chirish qo'shish qo'shing
+fayl papka hujjat elektron pochta jo'natish jo'natdim qabul qilindi bekor bekor qilish davom davom eting
+bildirishnoma xavfsizlik maxfiylik ruxsat ruxsat bering hisob qaydnoma foydalanuvchi profil sahifa
+@ 120
+yaxshi kun xayrli tong xayrli kech xayrli tun tinchlik salomat sog'-salomat qadrdon hurmatli muhtaram janob xonim
+ustoz shogird mehmon mehmonxona restoran kafe oshxona choyxona bog' park muzey teatr kutubxona masjid
+ovqatlanish nonushta kechki ovqat palov somsa lag'mon shashlik manti sho'rva qatiq sut tuxum shakar tuz yog'
+olma uzum anor qovun tarvuz o'rik shaftoli gilos nok behi limon apelsin banan sabzi piyoz kartoshka pomidor bodring

@@ -1,0 +1,49 @@
+name: iOS
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Unit tests (simulator)
+        run: |
+          set -euo pipefail
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          ids = [d["udid"] for runtime, items in sorted(devices.items(), reverse=True) if "iOS" in runtime for d in items if d["name"].startswith("iPhone")]
+          print(ids[0])
+          ')
+          echo "Testing on simulator $DEVICE_ID"
+          xcodebuild test -project UzKey.xcodeproj -scheme UzKey -destination "id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO -quiet
+
+      - name: Build unsigned IPA
+        run: |
+          set -euo pipefail
+          xcodebuild build -project UzKey.xcodeproj -scheme UzKey -configuration Release -sdk iphoneos \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" -quiet
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/UzKey.app Payload/
+          test -d Payload/UzKey.app/PlugIns/UzKeyKeyboard.appex
+          zip -qr UzKey-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uzkey-ios-unsigned
+          path: ios/UzKey-unsigned.ipa
+          if-no-files-found: error
