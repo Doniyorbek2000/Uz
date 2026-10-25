@@ -131,6 +131,8 @@ CYRILLIC_SINGLE = {
     "t": "т", "u": "у", "v": "в", "x": "х", "y": "й", "z": "з", "c": "с", "w": "в", "`": "ъ",
 }
 VOWELS = set("aeiouAEIOU")
+# -nsiya words whose Cyrillic spelling really has с.
+NSIYA_WITH_S = ("pensiya", "ekspansiya", "dispansiya")
 
 
 def to_cyrillic(word: str) -> str:
@@ -147,6 +149,11 @@ def to_cyrillic(word: str) -> str:
         # spelled "s", which cannot be told apart from a real с (konferensiya vs pensiya), so that stays с.
         if rest.startswith(("tsiya", "tsion")):
             out.append("ц"); i += 2
+        elif rest.startswith("siya") and lower[max(0, i - 2):i] in ("en", "an") and not any(
+            lower.startswith(stem) for stem in NSIYA_WITH_S
+        ):
+            # -ensiya/-ansiya loans are almost always -нция (konferensiya, stansiya, tendensiya).
+            out.append("ц"); i += 1
         elif rest.startswith("o'"):
             out.append("ў"); i += 2
         elif rest.startswith("g'"):
