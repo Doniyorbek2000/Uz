@@ -1,0 +1,44 @@
+name: Uzbek dictionary
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - tools/build_uz_corpus.py
+      - .github/workflows/uz-dictionary.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Count corpus word frequencies
+        run: python3 tools/build_uz_corpus.py --work-dir "$RUNNER_TEMP/corpus"
+
+      - name: Rebuild bundled dictionaries
+        run: |
+          pip install --quiet wordfreq
+          python3 tools/build_dictionaries.py
+          head -40 tools/uz_corpus_freq.tsv
+          wc -l shared/dictionaries/*.txt
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/uz_corpus_freq.tsv shared/dictionaries
+          if git diff --cached --quiet; then
+            echo "No dictionary changes"
+          else
+            git commit -m "Rebuild Uzbek dictionaries from corpus frequencies"
+            git push
+          fi

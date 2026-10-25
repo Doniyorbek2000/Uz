@@ -5,7 +5,8 @@ Output format: one entry per line, ``word<TAB>frequency`` where frequency is 1-2
 sorted by frequency descending.
 
 * en, ru  — top words from the ``wordfreq`` package (data: CC BY-SA 4.0).
-* uz_latn, uz_latn_2027, uz_cyrl — generated from tools/uz_seed.txt.
+* uz_latn, uz_latn_2027, uz_cyrl — tools/uz_seed.txt merged with corpus frequencies from
+  tools/uz_corpus_freq.tsv (produced by tools/build_uz_corpus.py), when that file exists.
 
 Usage:
     pip install wordfreq
@@ -14,12 +15,16 @@ Usage:
 from __future__ import annotations
 
 import logging
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SEED_PATH = ROOT / "tools" / "uz_seed.txt"
+CORPUS_PATH = ROOT / "tools" / "uz_corpus_freq.tsv"
+UZ_SIZE = 50_000
+SEED_FLOOR_OFFSET = 50
 OUT_DIR = ROOT / "shared" / "dictionaries"
 
 MODIFIER_TURNED_COMMA = "ʻ"  # ʻ — marks oʻ / gʻ
@@ -60,6 +65,41 @@ def parse_seed(path: Path) -> list[Entry]:
             entries.append(Entry(token, freq))
             index_in_tier += 1
     return entries
+
+
+def parse_corpus(path: Path) -> list[Entry]:
+    """Corpus words come in the current Latin script with ʻ/ʼ; convert them to the seed notation."""
+    if not path.exists():
+        return []
+    rows: list[tuple[str, int]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        word, _, count = line.partition("\t")
+        if word and count.strip().isdigit():
+            rows.append((word, int(count)))
+    total = sum(count for _, count in rows) or 1
+    entries = []
+    for word, count in rows[:UZ_SIZE]:
+        zipf = math.log10(count / total * 1e9)
+        freq = max(1, min(255, round(zipf * 30) - 30))
+        seed_word = word.replace(MODIFIER_TURNED_COMMA, "'").replace(MODIFIER_APOSTROPHE, "`")
+        entries.append(Entry(seed_word, freq))
+    return entries
+
+
+def merge_uzbek(seed: list[Entry], corpus: list[Entry]) -> list[Entry]:
+    if not corpus:
+        return seed
+    merged: dict[str, Entry] = {e.word.lower(): e for e in corpus}
+    for entry in seed:
+        key = entry.word.lower()
+        floor = max(1, entry.freq - SEED_FLOOR_OFFSET)
+        existing = merged.get(key)
+        if existing is None or existing.freq < floor:
+            # Keep the seed spelling: it carries the intended capitalisation.
+            merged[key] = Entry(entry.word, floor)
+        elif existing.word != entry.word and entry.word[0].isupper():
+            merged[key] = Entry(entry.word, existing.freq)
+    return sorted(merged.values(), key=lambda e: -e.freq)[:UZ_SIZE]
 
 
 def to_latin_current(word: str) -> str:
@@ -160,7 +200,7 @@ def write(name: str, entries: list[Entry]) -> None:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    seed = parse_seed(SEED_PATH)
+    seed = merge_uzbek(parse_seed(SEED_PATH), parse_corpus(CORPUS_PATH))
     write("uz_latn", [Entry(to_latin_current(e.word), e.freq) for e in seed])
     write("uz_latn_2027", [Entry(to_latin_2027(e.word), e.freq) for e in seed])
     write("uz_cyrl", [Entry(to_cyrillic(e.word), e.freq) for e in seed])
