@@ -17,6 +17,7 @@ import argparse
 import bz2
 import collections
 import csv
+import html
 import io
 import json
 import logging
@@ -153,22 +154,88 @@ def add_news_corpus(counter: Counter, work: Path) -> None:
         log.info("  %s: %d words", key, words)
 
 
-WIKI_MARKUP = re.compile(r"\{\{[^{}]*\}\}|\[\[(?:[^\]|]*\|)?([^\]]*)\]\]|<[^>]+>|&[a-z]+;|''+")
+WIKI_COMMENT = re.compile(r"<!--.*?-->", re.S)
+WIKI_REF = re.compile(r"<ref[^>/]*/>|<ref[^>]*>.*?</ref>", re.S | re.I)
+WIKI_TAG_BLOCK = re.compile(r"<(math|code|pre|syntaxhighlight|gallery|timeline|score)[^>]*>.*?</\1>", re.S | re.I)
+WIKI_TAG = re.compile(r"<[^>]+>")
+WIKI_TEMPLATE = re.compile(r"\{\{[^{}]*\}\}")
+WIKI_TABLE = re.compile(r"\{\|[^{}]*?\|\}", re.S)
+WIKI_LINK = re.compile(r"\[\[([^\[\]|]*)(?:\|([^\[\]]*))?\]\]")
+WIKI_EXTERNAL = re.compile(r"\[(?:https?:)?//[^\s\]]+\s*([^\]]*)\]")
+WIKI_URL = re.compile(r"https?://\S+")
+WIKI_EMPHASIS = re.compile(r"''+")
+WIKI_NS = re.compile(r"<ns>(\d+)</ns>")
+WIKI_TEXT = re.compile(r"<text[^>]*>(.*?)</text>", re.S)
+
+
+def _wiki_link(match: re.Match[str]) -> str:
+    target, label = match.group(1), match.group(2)
+    # [[Turkum:...]], [[Fayl:...]], [[en:...]]: namespaces and interwiki links are not prose.
+    if ":" in target:
+        return " "
+    return label if label is not None else target
+
+
+def clean_wikitext(text: str) -> str:
+    """Reduces MediaWiki markup to plain prose: drops templates, tables, references, files and categories."""
+    text = html.unescape(text)
+    text = WIKI_COMMENT.sub(" ", text)
+    text = WIKI_REF.sub(" ", text)
+    text = WIKI_TAG_BLOCK.sub(" ", text)
+    for _ in range(8):  # templates and tables nest; each pass peels the innermost layer
+        reduced = WIKI_TABLE.sub(" ", WIKI_TEMPLATE.sub(" ", text))
+        if reduced == text:
+            break
+        text = reduced
+    for _ in range(3):  # file captions contain links: [[Fayl:x.jpg|... [[y]] ...]]
+        reduced = WIKI_LINK.sub(_wiki_link, text)
+        if reduced == text:
+            break
+        text = reduced
+    text = WIKI_EXTERNAL.sub(lambda m: m.group(1), text)
+    text = WIKI_URL.sub(" ", text)
+    text = WIKI_TAG.sub(" ", text)
+    text = WIKI_EMPHASIS.sub("", text)
+    lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        # Residue of multi-line templates and tables, headings, navigation lists and magic words.
+        if not stripped or stripped[0] in "|!{}=*#:;" or stripped.startswith("__"):
+            continue
+        lines.append(stripped)
+    return "\n".join(lines)
+
+
+def iter_wiki_articles(path: Path):
+    """Yields the wikitext of main-namespace, non-redirect pages of a MediaWiki XML dump."""
+    buffer: list[str] = []
+    in_page = False
+    with bz2.open(path, "rt", encoding="utf-8", errors="ignore") as dump:
+        for line in dump:
+            if "<page>" in line:
+                in_page = True
+                buffer = []
+            if in_page:
+                buffer.append(line)
+            if in_page and "</page>" in line:
+                in_page = False
+                page = "".join(buffer)
+                ns = WIKI_NS.search(page)
+                if ns is None or ns.group(1) != "0" or "<redirect" in page:
+                    continue
+                body = WIKI_TEXT.search(page)
+                if body:
+                    yield body.group(1)
 
 
 def add_wikipedia(counter: Counter, work: Path) -> None:
     path = download(WIKI_DUMP, work / "uzwiki.xml.bz2")
     words = 0
-    in_text = False
-    with bz2.open(path, "rt", encoding="utf-8", errors="ignore") as dump:
-        for line in dump:
-            if "<text" in line:
-                in_text = True
-            if in_text:
-                words += counter.add_text(WIKI_MARKUP.sub(lambda m: m.group(1) or " ", line), WIKI_WEIGHT)
-            if "</text>" in line:
-                in_text = False
-    log.info("wikipedia: %d words", words)
+    pages = 0
+    for wikitext in iter_wiki_articles(path):
+        words += counter.add_text(clean_wikitext(wikitext), WIKI_WEIGHT)
+        pages += 1
+    log.info("wikipedia: %d articles, %d words", pages, words)
 
 
 def main() -> None:
