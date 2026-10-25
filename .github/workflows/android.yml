@@ -36,7 +36,7 @@ jobs:
           UZKEY_KEYSTORE_PASSWORD: ${{ secrets.UZKEY_KEYSTORE_PASSWORD }}
           UZKEY_KEY_ALIAS: ${{ secrets.UZKEY_KEY_ALIAS }}
           UZKEY_KEY_PASSWORD: ${{ secrets.UZKEY_KEY_PASSWORD }}
-        run: ./gradlew --stacktrace testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease
+        run: ./gradlew --stacktrace testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease bundleRelease
 
       - uses: actions/upload-artifact@v4
         with:
@@ -44,6 +44,7 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/*.apk
             android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -93,7 +94,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            bash tools/ci/android_screenshots.sh "$(ls apk/debug/*.apk | head -1)" docs/screenshots
+            bash tools/ci/android_screenshots.sh "$(find apk -path "*/debug/*.apk" | head -1)" docs/screenshots
             bash tools/ci/android_ui_tests.sh "$(ls apk-tests/*.apk | head -1)" build/android-ui-tests.txt
 
       - uses: actions/upload-artifact@v4

@@ -32,6 +32,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
     private var loadingDictionaries: Set<String> = []
     private var users: [String: UserDictionary] = [:]
     private var engines: [String: SuggestionEngine] = [:]
+    /// The dictionary of the language switched away from, kept so toggling back is instant.
+    private var previousDictionary = ""
     private var emojiCategories: [EmojiCategory]?
     private var saveWork: DispatchWorkItem?
 
@@ -93,7 +95,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         keyboardView.addSubview(globeButton)
         keyboardView.onLayout = { [weak self] in self?.positionGlobeButton() }
         userDictionaryEpoch = settings.userDictionaryEpoch
-        settings.enabledLayouts.forEach { preloadDictionary(layout($0).dictionary) }
+        // Only the active language is loaded up front: keyboard extensions run under a tight memory limit.
+        preloadDictionary(currentLayout.dictionary)
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        evictDictionaries(keeping: [currentLayout.dictionary])
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -119,7 +127,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         // System gesture recognizers delay touches near the screen edges; keys must react instantly.
         view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
         if hasFullAccess { feedbackGenerator.prepare() }
-        captureClipboard()
+        // The pasteboard is read only when the clipboard panel is opened: reading it here would make iOS
+        // show its "UzKey pasted from …" notice every time the keyboard appears after a copy.
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -181,8 +190,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
                 guard let self else { return }
                 self.dictionaries[id] = dictionary
                 self.loadingDictionaries.remove(id)
+                self.evictDictionaries(keeping: [self.currentLayout.dictionary, id, self.previousDictionary])
                 self.refreshState()
             }
+        }
+    }
+
+    /// Drops bundled dictionaries (and their engines) that are not in `kept`; learned words stay loaded.
+    private func evictDictionaries(keeping kept: Set<String>) {
+        for id in dictionaries.keys where !kept.contains(id) {
+            dictionaries[id] = nil
+            engines[id] = nil
         }
     }
 
@@ -764,6 +782,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         guard enabled.count > 1 else { return }
         let index = enabled.firstIndex(of: settings.currentLayout) ?? 0
         let next = enabled[(index + 1) % enabled.count]
+        previousDictionary = currentLayout.dictionary
         settings.currentLayout = next
         preloadDictionary(layout(next).dictionary)
         layer = .letters
@@ -791,13 +810,20 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
     }
 
     /// Keyboard extensions cannot use UIApplication.shared; find the application in the responder chain.
+    /// iOS 18 ignores the deprecated `openURL:`, so `openURL:options:completionHandler:` is called when present.
     private func openContainerApp() {
-        guard let url = URL(string: "uzkey://settings") else { return }
-        let selector = NSSelectorFromString("openURL:")
+        guard let url = URL(string: "uzkey://settings"), let applicationClass = NSClassFromString("UIApplication") else { return }
         var responder: UIResponder? = self
         while let current = responder {
-            if let applicationClass = NSClassFromString("UIApplication"), current.isKind(of: applicationClass), current.responds(to: selector) {
-                current.perform(selector, with: url)
+            if current.isKind(of: applicationClass) {
+                let modern = NSSelectorFromString("openURL:options:completionHandler:")
+                if current.responds(to: modern), let implementation = current.method(for: modern) {
+                    typealias OpenURL = @convention(c) (AnyObject, Selector, NSURL, NSDictionary, (@convention(block) (Bool) -> Void)?) -> Void
+                    unsafeBitCast(implementation, to: OpenURL.self)(current, modern, url as NSURL, NSDictionary(), nil)
+                    return
+                }
+                let legacy = NSSelectorFromString("openURL:")
+                if current.responds(to: legacy) { current.perform(legacy, with: url) }
                 return
             }
             responder = current.next
