@@ -72,7 +72,9 @@ final class PerformanceTests: XCTestCase {
             let normalizer = KeyNormalizer.forDictionary(id)
             var previous: WordKey = []
             var mismatches: [String] = []
-            for (number, line) in try String(contentsOf: url, encoding: .utf8).split(separator: "\n").enumerated() {
+            let lines = try String(contentsOf: url, encoding: .utf8).split(separator: "\n")
+            XCTAssertEqual(lines.first.map(String.init), WordDictionary.sortedKeysHeader, "\(id) must start with the sorted-keys header")
+            for (number, line) in lines.enumerated() where !line.hasPrefix("#") {
                 let columns = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
                 let key = columns.count > 2 ? columns[2] : columns[0]
                 if normalizer.normalize(columns[0]) != key, mismatches.count < 5 {

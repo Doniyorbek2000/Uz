@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Generate the bundled word lists in shared/dictionaries/.
 
-Output format: one entry per line, ``word<TAB>frequency[<TAB>key]`` where frequency is 1-255 and
-key is the normalised lookup key (written only when it differs from the word); sorted by key in
-UTF-16 order with one entry per key, so the apps can load it without sorting.
+Output format: a ``#sorted-keys`` header, then one entry per line, ``word<TAB>frequency[<TAB>key]``
+where frequency is 1-255 and key is the normalised lookup key (written only when it differs from the
+word); sorted by key in UTF-16 order with one entry per key, so the apps load it without normalising
+or sorting.
 
 * en, ru  — top words from the ``wordfreq`` package (data: CC BY-SA 4.0).
 * uz_latn, uz_latn_2027, uz_cyrl — tools/uz_seed.txt merged with corpus frequencies from
@@ -225,6 +226,10 @@ def latin_2027_key(word: str) -> str:
     return "".join(out)
 
 
+# First line of every generated file: entries are sorted by key, and a missing key column means key == word.
+SORTED_KEYS_HEADER = "#sorted-keys"
+
+
 def utf16_order(key: str) -> bytes:
     """Sort key matching String comparison in Kotlin and the UTF-16 key comparison in Swift."""
     return key.encode("utf-16-be")
@@ -249,7 +254,7 @@ def write(name: str, entries: list[Entry]) -> None:
     for entry, key in ordered:
         lines.append(f"{entry.word}\t{entry.freq}\n" if key == entry.word else f"{entry.word}\t{entry.freq}\t{key}\n")
     path = OUT_DIR / f"{name}.txt"
-    path.write_text("".join(lines), encoding="utf-8")
+    path.write_text(SORTED_KEYS_HEADER + "\n" + "".join(lines), encoding="utf-8")
     log.info("wrote %s (%d words)", path.relative_to(ROOT), len(ordered))
 
 

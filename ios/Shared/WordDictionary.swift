@@ -30,6 +30,9 @@ final class WordDictionary {
 
     static let empty = WordDictionary(words: [], keys: [], frequencies: [])
 
+    /// First line of files written by tools/build_dictionaries.py.
+    static let sortedKeysHeader = "#sorted-keys"
+
     private init(words: [String], keys: [WordKey], frequencies: [Int]) {
         self.words = words
         self.keys = keys
@@ -96,6 +99,7 @@ final class WordDictionary {
         keys.reserveCapacity(52_000)
         frequencies.reserveCapacity(52_000)
         var sorted = true
+        var keyed = false
         data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
             let bytes = buffer.bindMemory(to: UInt8.self)
             let tab: UInt8 = 9, newline: UInt8 = 10, carriageReturn: UInt8 = 13
@@ -107,6 +111,11 @@ final class WordDictionary {
                 if contentEnd > lineStart && bytes[contentEnd - 1] == carriageReturn { contentEnd -= 1 }
                 defer { lineStart = lineEnd + 1 }
                 guard contentEnd > lineStart else { continue }
+                if bytes[lineStart] == 35 { // "#": header or comment
+                    let header = String(decoding: UnsafeBufferPointer(rebasing: bytes[lineStart..<contentEnd]), as: UTF8.self)
+                    if header.trimmingCharacters(in: .whitespaces) == Self.sortedKeysHeader { keyed = true }
+                    continue
+                }
                 var firstTab = lineStart
                 while firstTab < contentEnd && bytes[firstTab] != tab { firstTab += 1 }
                 let word = String(decoding: UnsafeBufferPointer(rebasing: bytes[lineStart..<firstTab]), as: UTF8.self)
@@ -124,9 +133,12 @@ final class WordDictionary {
                     position += 1
                 }
                 if !sawDigit { frequency = 1 }
+                // In keyed files a missing key column means the word is its own key; elsewhere keys are computed.
                 let key: WordKey
                 if position < contentEnd {
                     key = Array(String(decoding: UnsafeBufferPointer(rebasing: bytes[(position + 1)..<contentEnd]), as: UTF8.self).utf16)
+                } else if keyed {
+                    key = Array(word.utf16)
                 } else {
                     key = Array(normalizer.normalize(word).utf16)
                 }

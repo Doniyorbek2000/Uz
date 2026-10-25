@@ -31,7 +31,10 @@ class BundledDictionaryTest {
         for (id in LayoutIds.LANGUAGES) {
             val normalizer = KeyNormalizer.forDictionary(id)
             var previous = ""
-            File(dictionaryDir, "$id.txt").readLines().forEachIndexed { line, text ->
+            val lines = File(dictionaryDir, "$id.txt").readLines()
+            assertEquals("$id must start with the sorted-keys header", WordDictionary.SORTED_KEYS_HEADER, lines.first())
+            lines.forEachIndexed { line, text ->
+                if (text.startsWith("#")) return@forEachIndexed
                 val columns = text.split('\t')
                 val key = columns.getOrNull(2) ?: columns[0]
                 assertEquals("$id line ${line + 1}: key of “${columns[0]}”", normalizer.normalize(columns[0]), key)
@@ -50,9 +53,9 @@ class BundledDictionaryTest {
 
     @Test
     fun uzbekDictionariesUseTheirOwnAlphabet() {
-        val latin2027 = File(dictionaryDir, "uz_latn_2027.txt").readLines().map { it.substringBefore('\t') }
+        val latin2027 = File(dictionaryDir, "uz_latn_2027.txt").readLines().filterNot { it.startsWith("#") }.map { it.substringBefore('\t') }
         assertTrue("legacy oʻ/gʻ/sh/ch left in the new-alphabet list", latin2027.none { "oʻ" in it || "gʻ" in it || "o'" in it })
-        val cyrillic = File(dictionaryDir, "uz_cyrl.txt").readLines().map { it.substringBefore('\t') }
+        val cyrillic = File(dictionaryDir, "uz_cyrl.txt").readLines().filterNot { it.startsWith("#") }.map { it.substringBefore('\t') }
         val latinInCyrillic = cyrillic.count { word -> word.any { it in 'a'..'z' } }
         assertTrue("$latinInCyrillic Cyrillic entries contain Latin letters", latinInCyrillic <= cyrillic.size / 200)
     }

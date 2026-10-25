@@ -1,3 +1,4 @@
+#sorted-keys
 a	191
 a's	75
 aa	90

@@ -1,3 +1,4 @@
+#sorted-keys
 a	148
 aʼlam	61	a'lam
 aʼlo	100	a'lo
