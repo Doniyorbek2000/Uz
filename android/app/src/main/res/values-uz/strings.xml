@@ -56,4 +56,26 @@
     <string name="version">Versiya %1$s</string>
     <string name="done_badge">Tayyor</string>
     <string name="languages_min_one">Kamida bitta til qolsin</string>
+    <string name="clipboard_title">Bufer</string>
+    <string name="clipboard_clear">Tozalaş</string>
+    <string name="clipboard_empty">Nusxa olingan matnlar şu yerda çiqadi. Saqlab qöyiş uçun bosib turing.</string>
+    <string name="clipboard_remove">Öçiriş</string>
+    <string name="a11y_shift">Shift</string>
+    <string name="a11y_shift_on">Shift yoqilgan</string>
+    <string name="a11y_caps_lock">Caps Lock yoqilgan</string>
+    <string name="a11y_delete">Öçiriş</string>
+    <string name="a11y_space">Böş joy</string>
+    <string name="a11y_enter">Kiritiş</string>
+    <string name="a11y_symbols">Belgilar</string>
+    <string name="a11y_letters">Harflar</string>
+    <string name="a11y_language">Tilni almaştiriş, hozir %1$s</string>
+    <string name="a11y_emoji">Emoji</string>
+    <string name="a11y_convert">Alifboni ögiriş</string>
+    <string name="a11y_voice">Ovoz bilan yoziş</string>
+    <string name="a11y_hide">Klaviaturani yaşiriş</string>
+    <string name="pref_gesture">Surib yoziş</string>
+    <string name="pref_gesture_desc">Sözni yoziş uçun barmoqni harflar ustida suring</string>
+    <string name="pref_clipboard">Bufer tarixi</string>
+    <string name="pref_clipboard_desc">Nusxa olingan matnlarni bir kun saqlaş (parollar saqlanmaydi)</string>
+    <string name="tip_gesture">Barmoqni kötarmasdan harflar ustida surib yozing</string>
 </resources>

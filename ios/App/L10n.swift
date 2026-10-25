@@ -47,6 +47,8 @@ enum L10n {
     static var autocap: String { pick("Avtomatik boş harf", "Заглавная в начале предложения", "Auto-capitalization") }
     static var doubleSpace: String { pick("Ikki böş joy — nuqta", "Точка двойным пробелом", "Double-space period") }
     static var apostrophe: String { pick("Apostrofni töğrilaş (o' → ö / oʻ)", "Исправлять апострофы (o' → ö / oʻ)", "Fix apostrophes (o' → ö / oʻ)") }
+    static var gesture: String { pick("Surib yoziş", "Непрерывный ввод", "Swipe typing") }
+    static var clipboard: String { pick("Bufer tarixi («Töliq ruxsat» kerak)", "История буфера (нужен «Полный доступ»)", "Clipboard history (needs Full Access)") }
     static var keys: String { pick("Tugmalar", "Клавиши", "Keys") }
     static var numberRow: String { pick("Raqamlar qatori", "Ряд цифр", "Number row") }
     static var numberHints: String { pick("Raqam belgilari", "Подсказки цифр", "Number hints") }
@@ -70,18 +72,21 @@ enum L10n {
     static var tipList: [String] {
         switch language {
         case .uz: return [
+            "Barmoqni kötarmasdan harflar ustida surib yozing",
             "Kursorni siljitiş uçun böş joy tugmasini suring",
             "Qöşimça harflar uçun harfni bosib turing (o → ö, oʻ)",
             "Caps Lock uçun Shift ni ikki marta bosing",
             "⇄ tugmasi matnni joriy özbek alifbosiga ögiradi",
         ]
         case .ru: return [
+            "Вводите слова, не отрывая палец от букв",
             "Проведите по пробелу, чтобы двигать курсор",
             "Удерживайте букву для дополнительных символов (o → ö, oʻ)",
             "Дважды нажмите Shift для Caps Lock",
             "Кнопка ⇄ переводит текст в выбранный узбекский алфавит",
         ]
         case .en: return [
+            "Swipe across letters to type without lifting your finger",
             "Slide on the space bar to move the cursor",
             "Hold a letter for extra characters (o → ö, oʻ)",
             "Double-tap Shift for Caps Lock",

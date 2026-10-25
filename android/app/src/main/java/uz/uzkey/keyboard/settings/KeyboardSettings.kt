@@ -70,6 +70,8 @@ class KeyboardSettings(context: Context) {
     var numberHints by BooleanPreference(KEY_NUMBER_HINTS, true)
     var keyPopup by BooleanPreference(KEY_POPUP, true)
     var apostropheFix by BooleanPreference(KEY_APOSTROPHE_FIX, true)
+    var gestureTyping by BooleanPreference(KEY_GESTURE_TYPING, true)
+    var clipboardHistory by BooleanPreference(KEY_CLIPBOARD_HISTORY, true)
 
     var recentEmojis: List<String>
         get() = preferences.getString(KEY_RECENT_EMOJI, null)?.split(' ')?.filter { it.isNotEmpty() }.orEmpty()
@@ -105,6 +107,8 @@ class KeyboardSettings(context: Context) {
         const val KEY_POPUP = "key_popup"
         const val KEY_APOSTROPHE_FIX = "apostrophe_fix"
         const val KEY_RECENT_EMOJI = "recent_emoji"
+        const val KEY_GESTURE_TYPING = "gesture_typing"
+        const val KEY_CLIPBOARD_HISTORY = "clipboard_history"
         const val KEY_USER_DICT_EPOCH = "user_dict_epoch"
         private const val MAX_RECENT_EMOJI = 32
 

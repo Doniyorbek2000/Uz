@@ -1,6 +1,9 @@
 package uz.uzkey.keyboard.ime
 
+import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
@@ -19,11 +22,15 @@ import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import android.view.inputmethod.InputMethodSubtype
 import android.widget.FrameLayout
 import java.text.BreakIterator
 import kotlin.math.abs
 import uz.uzkey.keyboard.core.BuildOptions
 import uz.uzkey.keyboard.core.FieldKind
+import uz.uzkey.keyboard.core.GestureDecoder
+import uz.uzkey.keyboard.core.GesturePoint
+import uz.uzkey.keyboard.core.KeyNormalizer
 import uz.uzkey.keyboard.core.KeySpec
 import uz.uzkey.keyboard.core.KeyType
 import uz.uzkey.keyboard.core.KeyboardBuilder
@@ -40,11 +47,12 @@ class UzKeyService :
     InputMethodService(),
     KeyboardView.Listener,
     EmojiPanelView.Listener,
+    ClipboardPanelView.Listener,
     SharedPreferences.OnSharedPreferenceChangeListener {
 
     private enum class Layer { LETTERS, SYMBOLS, SYMBOLS_MORE, NUMPAD }
 
-    private enum class LastAction { NONE, CHARACTER, SPACE, PICK, AUTOCORRECT, DELETE }
+    private enum class LastAction { NONE, CHARACTER, SPACE, PICK, AUTOCORRECT, DELETE, GESTURE }
 
     private lateinit var settings: KeyboardSettings
     private lateinit var store: DictionaryStore
@@ -54,6 +62,13 @@ class UzKeyService :
     private var root: FrameLayout? = null
     private var keyboardView: KeyboardView? = null
     private var emojiView: EmojiPanelView? = null
+    private var clipboardView: ClipboardPanelView? = null
+    private lateinit var clipboardHistory: ClipboardHistory
+    private var clipboardManager: ClipboardManager? = null
+    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { captureClip() }
+    private var isPasswordField = false
+    private var lastGestureWord: String? = null
+    private var gestureAlternatives: List<String> = emptyList()
 
     private var layer = Layer.LETTERS
     private var shift = ShiftState.OFF
@@ -93,9 +108,13 @@ class UzKeyService :
         userDictionaryEpoch = settings.userDictionaryEpoch
         settings.preferences.registerOnSharedPreferenceChangeListener(this)
         settings.enabledLayouts.forEach { store.preload(store.layout(it).dictionary) }
+        clipboardHistory = ClipboardHistory(this)
+        clipboardManager = getSystemService(ClipboardManager::class.java)
+        clipboardManager?.addPrimaryClipChangedListener(clipListener)
     }
 
     override fun onDestroy() {
+        clipboardManager?.removePrimaryClipChangedListener(clipListener)
         settings.preferences.unregisterOnSharedPreferenceChangeListener(this)
         mainHandler.removeCallbacks(refreshRunnable)
         store.shutdown()
@@ -105,9 +124,11 @@ class UzKeyService :
     override fun onCreateInputView(): View {
         val keyboard = KeyboardView(this, this)
         val emoji = EmojiPanelView(this, this).apply { visibility = View.GONE }
+        val clips = ClipboardPanelView(this, this).apply { visibility = View.GONE }
         val container = FrameLayout(this).apply {
             addView(keyboard, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(emoji, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(clips, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             setOnApplyWindowInsetsListener { _, insets ->
                 val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     insets.getInsets(WindowInsets.Type.navigationBars()).bottom
@@ -122,11 +143,17 @@ class UzKeyService :
         root = container
         keyboardView = keyboard
         emojiView = emoji
+        clipboardView = clips
         needsRebuild = true
         return container
     }
 
     override fun onEvaluateFullscreenMode(): Boolean = false
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        needsRebuild = true
+        super.onConfigurationChanged(newConfig)
+    }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
@@ -174,6 +201,7 @@ class UzKeyService :
             return
         }
         if (key != null && key in KeyboardSettings.VOLATILE_KEYS) return
+        if (key == KeyboardSettings.KEY_CLIPBOARD_HISTORY && !settings.clipboardHistory) clipboardHistory.clearAll()
         needsRebuild = true
         if (key == KeyboardSettings.KEY_ENABLED_LAYOUTS) settings.enabledLayouts.forEach { store.preload(store.layout(it).dictionary) }
         if (keyboardView?.isShown == true) {
@@ -206,6 +234,7 @@ class UzKeyService :
         val noSuggestionsFlag = inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS != 0
         val textLike = inputClass == InputType.TYPE_CLASS_TEXT && fieldKind == FieldKind.TEXT &&
             variation != InputType.TYPE_TEXT_VARIATION_FILTER
+        isPasswordField = isPassword
         suggestionsAllowed = textLike && !isPassword && !noSuggestionsFlag
         learningAllowed = textLike && !isPassword && info.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING == 0
         autoCapAllowed = textLike && !isPassword
@@ -232,6 +261,19 @@ class UzKeyService :
         val theme = KeyboardTheme.resolve(this, settings.theme)
         view.theme = theme
         emojiView?.theme = theme
+        clipboardView?.theme = theme
+        val configuration = resources.configuration
+        val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val tablet = configuration.smallestScreenWidthDp >= 600
+        view.baseRowHeightDp = when {
+            tablet && landscape -> 50f
+            tablet -> 60f
+            landscape -> 40f
+            else -> 54f
+        }
+        view.stripHeightDp = if (landscape && !tablet) 38f else 46f
+        view.gestureTyping = settings.gestureTyping && suggestionsAllowed
+        view.voiceAvailable = findVoiceInputMethod() != null
         view.heightScale = settings.keyHeight.scale
         view.showKeyPopup = settings.keyPopup
         view.enterIcon = enterIcon()
@@ -267,7 +309,59 @@ class UzKeyService :
 
     private fun showKeyboardPanel() {
         emojiView?.visibility = View.GONE
+        clipboardView?.visibility = View.GONE
         keyboardView?.visibility = View.VISIBLE
+    }
+
+    private fun showClipboardPanel() {
+        val keyboard = keyboardView ?: return
+        val clips = clipboardView ?: return
+        captureClip()
+        clips.panelHeight = keyboard.height
+        clips.setItems(clipboardHistory.items())
+        keyboard.cancelAllPointers()
+        keyboard.visibility = View.INVISIBLE
+        clips.visibility = View.VISIBLE
+    }
+
+    private fun captureClip() {
+        if (!settings.clipboardHistory || isPasswordField) return
+        val clip = try {
+            clipboardManager?.primaryClip
+        } catch (error: SecurityException) {
+            null
+        } ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            clip.description.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE) == true
+        ) {
+            return
+        }
+        if (clip.itemCount == 0) return
+        val text = clip.getItemAt(0).coerceToText(this)?.toString() ?: return
+        clipboardHistory.add(text)
+    }
+
+    /** An enabled voice-typing input method (e.g. Google voice typing), if the user has one. */
+    private fun findVoiceInputMethod(): Pair<String, InputMethodSubtype>? {
+        val imm = getSystemService(InputMethodManager::class.java) ?: return null
+        for (info in imm.enabledInputMethodList) {
+            if (info.packageName == packageName) continue
+            for (subtype in imm.getEnabledInputMethodSubtypeList(info, true)) {
+                if (subtype.mode == "voice") return info.id to subtype
+            }
+        }
+        return null
+    }
+
+    private fun switchToVoice() {
+        val (id, subtype) = findVoiceInputMethod() ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            switchInputMethod(id, subtype)
+        } else {
+            val token = window?.window?.attributes?.token ?: return
+            @Suppress("DEPRECATION")
+            getSystemService(InputMethodManager::class.java)?.setInputMethodAndSubtype(token, id, subtype)
+        }
     }
 
     private fun showEmojiPanel() {
@@ -303,6 +397,11 @@ class UzKeyService :
         val selected = ic?.getSelectedText(0)
         if (!selected.isNullOrEmpty()) {
             view.setSuggestions(Suggestions.NONE, convertAvailable)
+            return
+        }
+        val gestureWord = lastGestureWord
+        if (lastAction == LastAction.GESTURE && gestureWord != null && gestureAlternatives.isNotEmpty()) {
+            view.setSuggestions(Suggestions("", listOf(gestureWord) + gestureAlternatives, true), convertAvailable)
             return
         }
         val typed = TextRules.currentWord(before)
@@ -428,6 +527,23 @@ class UzKeyService :
     override fun onSuggestionPicked(text: String) {
         val ic = currentInputConnection ?: return
         feedback(KeyType.CHAR)
+        val gestureWord = lastGestureWord
+        if (lastAction == LastAction.GESTURE && gestureWord != null) {
+            ic.beginBatchEdit()
+            val before = ic.getTextBeforeCursor(gestureWord.length + 1, 0)?.toString()
+            if (before == "$gestureWord ") {
+                ic.deleteSurroundingText(gestureWord.length + 1, 0)
+                ic.commitText("$text ", 1)
+            }
+            ic.endBatchEdit()
+            learn(null, text)
+            lastGestureWord = null
+            gestureAlternatives = emptyList()
+            autoSpacePending = true
+            lastAction = LastAction.PICK
+            scheduleRefresh()
+            return
+        }
         ic.beginBatchEdit()
         val before = ic.getTextBeforeCursor(64, 0) ?: ""
         val typed = TextRules.currentWord(before)
@@ -453,7 +569,82 @@ class UzKeyService :
                 startActivity(intent)
             }
             ToolbarAction.HIDE -> requestHideSelf(0)
+            ToolbarAction.CLIPBOARD -> showClipboardPanel()
+            ToolbarAction.VOICE -> switchToVoice()
         }
+    }
+
+    override fun onGesture(path: List<GesturePoint>) {
+        val view = keyboardView ?: return
+        val ic = currentInputConnection ?: return
+        val layout = currentLayout
+        val dictionary = store.dictionary(layout.dictionary) ?: return
+        val decoder = GestureDecoder(
+            dictionary,
+            KeyNormalizer.forDictionary(layout.dictionary),
+            view.gestureKeyCenters(),
+            view.gestureKeyWidth(),
+            store.user(layout.dictionary),
+        )
+        val words = decoder.decode(path).map { applyShift(it.word) }.distinct()
+        if (words.isEmpty()) return
+        val word = words.first()
+        ic.beginBatchEdit()
+        val before = ic.getTextBeforeCursor(64, 0) ?: ""
+        val previousChar = before.lastOrNull()
+        val needsSpace = previousChar != null && !previousChar.isWhitespace() && previousChar !in "([{«\"'"
+        ic.commitText((if (needsSpace) " " else "") + word + " ", 1)
+        ic.endBatchEdit()
+        val previous = if (needsSpace) TextRules.currentWord(before).ifEmpty { null } else TextRules.previousWord(before)
+        learn(previous, word)
+        lastGestureWord = word
+        gestureAlternatives = words.drop(1).take(2)
+        autoSpacePending = true
+        lastAutocorrect = null
+        lastAction = LastAction.GESTURE
+        if (shift == ShiftState.ONCE) {
+            shift = ShiftState.OFF
+            shiftIsAuto = false
+        }
+        scheduleRefresh()
+    }
+
+    private fun applyShift(word: String): String = when (shift) {
+        ShiftState.OFF -> word
+        ShiftState.ONCE -> word.substring(0, 1).uppercase() + word.substring(1)
+        ShiftState.LOCKED -> word.uppercase()
+    }
+
+    // ---- ClipboardPanelView.Listener ------------------------------------------------------
+
+    override fun onClipPaste(text: String) {
+        currentInputConnection?.commitText(text, 1)
+        lastAction = LastAction.CHARACTER
+        autoSpacePending = false
+    }
+
+    override fun onClipRemove(text: String) {
+        clipboardHistory.remove(text)
+        clipboardView?.setItems(clipboardHistory.items())
+    }
+
+    override fun onClipTogglePin(text: String) {
+        clipboardHistory.togglePin(text)
+        clipboardView?.setItems(clipboardHistory.items())
+    }
+
+    override fun onClipClear() {
+        clipboardHistory.clearUnpinned()
+        clipboardView?.setItems(clipboardHistory.items())
+    }
+
+    override fun onClipClose() {
+        showKeyboardPanel()
+        scheduleRefresh()
+    }
+
+    override fun onClipFeedback() {
+        feedback(KeyType.CHAR)
     }
 
     // ---- EmojiPanelView.Listener ----------------------------------------------------------

@@ -40,6 +40,8 @@ final class KeyboardSettings {
         static let apostropheFix = "apostrophe_fix"
         static let recentEmoji = "recent_emoji"
         static let userDictionaryEpoch = "user_dict_epoch"
+        static let gestureTyping = "gesture_typing"
+        static let clipboardHistory = "clipboard_history"
     }
 
     let defaults: UserDefaults
@@ -61,6 +63,8 @@ final class KeyboardSettings {
             Key.keyPopup: true,
             Key.apostropheFix: true,
             Key.keySound: false,
+            Key.gestureTyping: true,
+            Key.clipboardHistory: true,
         ])
     }
 
@@ -109,6 +113,8 @@ final class KeyboardSettings {
     var numberHints: Bool { get { defaults.bool(forKey: Key.numberHints) } set { defaults.set(newValue, forKey: Key.numberHints) } }
     var keyPopup: Bool { get { defaults.bool(forKey: Key.keyPopup) } set { defaults.set(newValue, forKey: Key.keyPopup) } }
     var apostropheFix: Bool { get { defaults.bool(forKey: Key.apostropheFix) } set { defaults.set(newValue, forKey: Key.apostropheFix) } }
+    var gestureTyping: Bool { get { defaults.bool(forKey: Key.gestureTyping) } set { defaults.set(newValue, forKey: Key.gestureTyping) } }
+    var clipboardHistory: Bool { get { defaults.bool(forKey: Key.clipboardHistory) } set { defaults.set(newValue, forKey: Key.clipboardHistory) } }
 
     var recentEmojis: [String] {
         get { (local.string(forKey: Key.recentEmoji) ?? "").split(separator: " ").map(String.init) }

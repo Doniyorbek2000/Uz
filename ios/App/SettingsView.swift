@@ -19,6 +19,8 @@ final class SettingsModel: ObservableObject {
     @Published var keyPopup: Bool { didSet { settings.keyPopup = keyPopup } }
     @Published var vibration: Bool { didSet { settings.vibration = vibration } }
     @Published var keySound: Bool { didSet { settings.keySound = keySound } }
+    @Published var gestureTyping: Bool { didSet { settings.gestureTyping = gestureTyping } }
+    @Published var clipboardHistory: Bool { didSet { settings.clipboardHistory = clipboardHistory } }
     @Published var keyboardEnabled = false
 
     let layoutNames: [String: (name: String, short: String)]
@@ -38,6 +40,8 @@ final class SettingsModel: ObservableObject {
         keyPopup = settings.keyPopup
         vibration = settings.vibration
         keySound = settings.keySound
+        gestureTyping = settings.gestureTyping
+        clipboardHistory = settings.clipboardHistory
         var names: [String: (name: String, short: String)] = [:]
         for id in LayoutIds.languages {
             if let data = SharedResources.data("layouts/\(id).json"), let spec = try? LayoutParser.parse(data) {
@@ -155,6 +159,8 @@ struct SettingsView: View {
 
                 Section(header: Text(L10n.typing)) {
                     Toggle(L10n.suggestions, isOn: $model.showSuggestions)
+                    Toggle(L10n.gesture, isOn: $model.gestureTyping)
+                    Toggle(L10n.clipboard, isOn: $model.clipboardHistory)
                     Toggle(L10n.autocorrect, isOn: $model.autoCorrect)
                     Toggle(L10n.learn, isOn: $model.learnWords)
                     Toggle(L10n.autocap, isOn: $model.autoCapitalize)

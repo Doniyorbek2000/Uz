@@ -95,6 +95,10 @@ targets:
     sources:
       - path: Tests
       - path: Shared
+      - path: Keyboard/KeyboardView.swift
+      - path: Keyboard/Icons.swift
+      - path: Keyboard/KeyboardStrings.swift
+      - path: Keyboard/ClipboardPanelView.swift
       - path: ../shared
         type: folder
         buildPhase: resources

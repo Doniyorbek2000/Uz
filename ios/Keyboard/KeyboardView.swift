@@ -5,7 +5,7 @@ enum ShiftState {
 }
 
 enum ToolbarAction {
-    case emoji, convert, settings, hide
+    case emoji, clipboard, convert, settings, hide
 }
 
 protocol KeyboardViewDelegate: AnyObject {
@@ -18,6 +18,7 @@ protocol KeyboardViewDelegate: AnyObject {
     func cursorMove(_ steps: Int)
     func suggestionPicked(_ text: String)
     func toolbarAction(_ action: ToolbarAction)
+    func gesture(_ path: [CGPoint])
 }
 
 /// Draws the suggestion strip and the key grid and turns touches into keyboard events.
@@ -56,6 +57,8 @@ final class KeyboardView: UIView {
         var longPressWork: DispatchWorkItem?
         var repeatTimer: Timer?
         var repeatCount = 0
+        var gesture = false
+        var path: [CGPoint] = []
 
         init(key: PlacedKey?, downPoint: CGPoint) {
             self.key = key
@@ -95,17 +98,20 @@ final class KeyboardView: UIView {
     private(set) var globeKeyFrame: CGRect?
     var onLayout: (() -> Void)?
 
-    static let stripHeight: CGFloat = 44
+    /// Strip and row heights before the user's size preference; set per orientation and device.
+    var stripHeight: CGFloat = 44
+    var baseRowHeight: CGFloat = 54 { didSet { invalidateIntrinsicContentSize() } }
+    var gestureTyping = false
     private let topPadding: CGFloat = 2
     private let bottomPadding: CGFloat = 4
     private let sidePadding: CGFloat = 3
     private let keyInsetX: CGFloat = 3
     private let keyInsetY: CGFloat = 5
     private let cornerRadius: CGFloat = 6
-    private var rowHeight: CGFloat { (UIDevice.current.userInterfaceIdiom == .pad ? 64 : 54) * heightScale }
+    private var rowHeight: CGFloat { baseRowHeight * heightScale }
 
     var preferredHeight: CGFloat {
-        Self.stripHeight + topPadding + CGFloat(rows.count) * rowHeight + bottomPadding
+        stripHeight + topPadding + CGFloat(rows.count) * rowHeight + bottomPadding
     }
 
     override init(frame: CGRect) {
@@ -130,6 +136,8 @@ final class KeyboardView: UIView {
         if heightChanged { invalidateIntrinsicContentSize() }
         relayout()
         setNeedsDisplay()
+        accessibilityElementsCache = nil
+        UIAccessibility.post(notification: .layoutChanged, argument: nil)
     }
 
     func setSuggestions(_ value: Suggestions, convertAvailable: Bool) {
@@ -137,6 +145,7 @@ final class KeyboardView: UIView {
         showConvert = convertAvailable
         arrangeStrip()
         setNeedsDisplay()
+        accessibilityElementsCache = nil
     }
 
     func cancelAllPointers() {
@@ -162,7 +171,7 @@ final class KeyboardView: UIView {
         let contentWidth = viewWidth - 2 * sidePadding
         let maxUnits = rows.map { row in row.reduce(0.0) { $0 + ($1.flex ? 1 : $1.weight) } }.max() ?? 1
         let unit = contentWidth / CGFloat(maxUnits)
-        var top = Self.stripHeight + topPadding
+        var top = stripHeight + topPadding
         for (rowIndex, row) in rows.enumerated() {
             let fixedWidth = CGFloat(row.filter { !$0.flex }.reduce(0.0) { $0 + $1.weight }) * unit
             let flexCount = row.filter { $0.flex }.count
@@ -194,9 +203,11 @@ final class KeyboardView: UIView {
         let typed = suggestions.typed
         if candidates.isEmpty && typed.isEmpty {
             let size: CGFloat = 44
-            let top = (Self.stripHeight - size) / 2
+            let top = (stripHeight - size) / 2
             var left: CGFloat = 4
             toolbarButtons.append((.emoji, CGRect(x: left, y: top, width: size, height: size)))
+            left += size
+            toolbarButtons.append((.clipboard, CGRect(x: left, y: top, width: size, height: size)))
             left += size
             if showConvert { toolbarButtons.append((.convert, CGRect(x: left, y: top, width: size, height: size))) }
             let right = bounds.width - 4
@@ -222,14 +233,15 @@ final class KeyboardView: UIView {
         context.fill(bounds)
         drawStrip(context)
         var pressed = Set<ObjectIdentifier>()
-        for pointer in pointers.values where !pointer.consumed && pointer.stripTarget < 0 {
+        for pointer in pointers.values where !pointer.consumed && !pointer.gesture && pointer.stripTarget < 0 {
             if let key = pointer.key { pressed.insert(ObjectIdentifier(key)) }
         }
         for key in placed { drawKey(context, key, pressed: pressed.contains(ObjectIdentifier(key))) }
+        for pointer in pointers.values where pointer.gesture { drawGestureTrail(context, pointer.path) }
         for pointer in pointers.values {
             if let popup = pointer.popup {
                 drawAlternates(context, popup)
-            } else if showKeyPopup, !pointer.consumed, !pointer.cursorMode, let key = pointer.key, key.spec.type == .char {
+            } else if showKeyPopup, !pointer.consumed, !pointer.cursorMode, !pointer.gesture, let key = pointer.key, key.spec.type == .char {
                 drawPreview(context, key)
             }
         }
@@ -270,6 +282,7 @@ final class KeyboardView: UIView {
                 case .convert: icon = .convert
                 case .settings: icon = .settings
                 case .hide: icon = .hide
+                case .clipboard: icon = .clipboard
                 }
                 Icons.draw(icon, in: context, center: CGPoint(x: rect.midX, y: rect.midY), size: 22, color: theme.subText)
             }
@@ -279,7 +292,7 @@ final class KeyboardView: UIView {
         let pressedSlot = activeStripTarget()
         for slot in 0..<3 {
             guard let text = stripSlots[slot] else { continue }
-            let slotRect = CGRect(x: CGFloat(slot) * slotWidth, y: 0, width: slotWidth, height: Self.stripHeight)
+            let slotRect = CGRect(x: CGFloat(slot) * slotWidth, y: 0, width: slotWidth, height: stripHeight)
             if pressedSlot == slot {
                 context.setFillColor(theme.keyPressed.cgColor)
                 context.addPath(UIBezierPath(roundedRect: slotRect.insetBy(dx: 4, dy: 5), cornerRadius: cornerRadius).cgPath)
@@ -292,7 +305,7 @@ final class KeyboardView: UIView {
         }
         context.setFillColor(theme.divider.cgColor)
         for slot in 1..<3 where stripSlots[slot - 1] != nil && stripSlots[slot] != nil {
-            context.fill(CGRect(x: CGFloat(slot) * slotWidth - 0.5, y: 12, width: 1, height: Self.stripHeight - 24))
+            context.fill(CGRect(x: CGFloat(slot) * slotWidth - 0.5, y: 12, width: 1, height: stripHeight - 24))
         }
     }
 
@@ -410,7 +423,7 @@ final class KeyboardView: UIView {
     // MARK: Touch
 
     private func stripTarget(at point: CGPoint) -> Int {
-        guard point.y <= Self.stripHeight else { return -1 }
+        guard point.y <= stripHeight else { return -1 }
         if !toolbarButtons.isEmpty {
             return toolbarButtons.firstIndex { point.x >= $0.1.minX - 4 && point.x <= $0.1.maxX + 4 } ?? -1
         }
@@ -419,7 +432,7 @@ final class KeyboardView: UIView {
     }
 
     private func key(at point: CGPoint) -> PlacedKey? {
-        guard point.y >= Self.stripHeight else { return nil }
+        guard point.y >= stripHeight else { return nil }
         if let hit = placed.first(where: { $0.touch.contains(point) }) { return hit }
         return placed.min { a, b in
             hypot(point.x - a.touch.midX, point.y - a.touch.midY) < hypot(point.x - b.touch.midX, point.y - b.touch.midY)
@@ -448,13 +461,13 @@ final class KeyboardView: UIView {
     private func pointerDown(_ touch: UITouch, at point: CGPoint) {
         // Rolling input: a new finger commits characters still held by other fingers.
         for other in pointers.values {
-            guard let otherKey = other.key, !other.consumed, other.popup == nil, !other.cursorMode, otherKey.spec.type == .char else { continue }
+            guard let otherKey = other.key, !other.consumed, !other.gesture, other.popup == nil, !other.cursorMode, otherKey.spec.type == .char else { continue }
             other.longPressWork?.cancel()
             other.consumed = true
             delegate?.character(otherKey.spec, text: otherKey.spec.output)
         }
         let id = ObjectIdentifier(touch)
-        if point.y < Self.stripHeight {
+        if point.y < stripHeight {
             let pointer = Pointer(key: nil, downPoint: point)
             pointer.stripTarget = stripTarget(at: point)
             pointers[id] = pointer
@@ -463,6 +476,7 @@ final class KeyboardView: UIView {
         }
         guard let key = self.key(at: point) else { return }
         let pointer = Pointer(key: key, downPoint: point)
+        pointer.path.append(point)
         pointers[id] = pointer
         delegate?.keyDown(key.spec)
         switch key.spec.type {
@@ -546,6 +560,17 @@ final class KeyboardView: UIView {
                 }
             }
         case .char:
+            if gestureTyping && isLetterLayer && pointers.count == 1 {
+                pointer.path.append(point)
+                if !pointer.gesture && hypot(point.x - pointer.downPoint.x, point.y - pointer.downPoint.y) > key.visual.width * 0.9 && self.key(at: point) !== key {
+                    pointer.gesture = true
+                    pointer.longPressWork?.cancel()
+                }
+                if pointer.gesture {
+                    setNeedsDisplay()
+                    return
+                }
+            }
             if !key.touch.contains(point), let next = self.key(at: point), next !== key, next.spec.type == .char {
                 pointer.longPressWork?.cancel()
                 pointer.key = next
@@ -573,6 +598,11 @@ final class KeyboardView: UIView {
             return
         }
         delegate?.keyUp(key.spec)
+        if pointer.gesture {
+            pointer.path.append(point)
+            delegate?.gesture(pointer.path)
+            return
+        }
         if pointer.consumed { return }
         if let popup = pointer.popup {
             if popup.selected >= 0 && popup.selected < popup.options.count {
@@ -628,5 +658,126 @@ final class KeyboardView: UIView {
         let rowCount = (popup.options.count + popup.columns - 1) / popup.columns
         let row = min(rowCount - 1, max(0, Int((point.y - popup.bounds.minY - padding) / popup.optionHeight)))
         return min(row * popup.columns + column, popup.options.count - 1)
+    }
+
+    // MARK: Gesture typing
+
+    private func drawGestureTrail(_ context: CGContext, _ points: [CGPoint]) {
+        guard points.count > 1 else { return }
+        let path = UIBezierPath()
+        path.move(to: points[0])
+        points.dropFirst().forEach { path.addLine(to: $0) }
+        context.saveGState()
+        context.setStrokeColor(theme.accent.withAlphaComponent(0.75).cgColor)
+        context.setLineWidth(4.5)
+        context.setLineCap(.round)
+        context.setLineJoin(.round)
+        context.addPath(path.cgPath)
+        context.strokePath()
+        context.restoreGState()
+    }
+
+    /// Centres of the letter keys (lower-case output → centre), used to decode swipes.
+    func gestureKeyCenters() -> [String: CGPoint] {
+        var centers: [String: CGPoint] = [:]
+        guard let lastRowTop = placed.last?.visual.minY else { return centers }
+        for key in placed where key.spec.type == .char && key.visual.minY < lastRowTop {
+            let output = key.spec.output.lowercased()
+            guard output.contains(where: { $0.isLetter }), centers[output] == nil else { continue }
+            centers[output] = CGPoint(x: key.visual.midX, y: key.visual.midY)
+        }
+        return centers
+    }
+
+    func gestureKeyWidth() -> CGFloat {
+        let widths = placed.filter { $0.spec.type == .char }.map { $0.touch.width }.sorted()
+        return widths.isEmpty ? 34 : widths[widths.count / 2]
+    }
+
+    // MARK: Accessibility (VoiceOver touch typing)
+
+    private var accessibilityElementsCache: [UIAccessibilityElement]?
+
+    private final class KeyElement: UIAccessibilityElement {
+        var activate: (() -> Void)?
+
+        override func accessibilityActivate() -> Bool {
+            activate?()
+            return true
+        }
+    }
+
+    private func accessibilityLabel(for spec: KeySpec) -> String {
+        switch spec.type {
+        case .char: return displayText(spec.label)
+        case .shift:
+            switch shiftState {
+            case .off: return "Shift"
+            case .once: return "Shift ✓"
+            case .locked: return "Caps Lock"
+            }
+        case .backspace: return KeyboardStrings.delete
+        case .space: return KeyboardStrings.space + (spaceLabel.isEmpty ? "" : ", \(spaceLabel)")
+        case .enter: return KeyboardStrings.enter
+        case .symbols, .symbolsMore: return KeyboardStrings.symbols
+        case .letters: return KeyboardStrings.letters
+        case .language: return KeyboardStrings.language
+        case .globe: return KeyboardStrings.nextKeyboard
+        case .emoji: return "Emoji"
+        }
+    }
+
+    override var isAccessibilityElement: Bool {
+        get { false }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    override var accessibilityElements: [Any]? {
+        get {
+            if let cached = accessibilityElementsCache { return cached }
+            var elements: [UIAccessibilityElement] = []
+            if toolbarButtons.isEmpty {
+                let slotWidth = bounds.width / 3
+                for slot in 0..<3 {
+                    guard let text = stripSlots[slot] else { continue }
+                    let element = KeyElement(accessibilityContainer: self)
+                    element.accessibilityLabel = text
+                    element.accessibilityTraits = .button
+                    element.accessibilityFrameInContainerSpace = CGRect(x: CGFloat(slot) * slotWidth, y: 0, width: slotWidth, height: stripHeight)
+                    element.activate = { [weak self] in self?.delegate?.suggestionPicked(text) }
+                    elements.append(element)
+                }
+            } else {
+                for (action, rect) in toolbarButtons {
+                    let element = KeyElement(accessibilityContainer: self)
+                    element.accessibilityLabel = KeyboardStrings.toolbar(action)
+                    element.accessibilityTraits = .button
+                    element.accessibilityFrameInContainerSpace = rect
+                    element.activate = { [weak self] in self?.delegate?.toolbarAction(action) }
+                    elements.append(element)
+                }
+            }
+            for key in placed where key.spec.type != .globe {
+                let element = KeyElement(accessibilityContainer: self)
+                element.accessibilityLabel = accessibilityLabel(for: key.spec)
+                element.accessibilityTraits = .keyboardKey
+                element.accessibilityFrameInContainerSpace = key.touch
+                let spec = key.spec
+                element.activate = { [weak self] in
+                    guard let delegate = self?.delegate else { return }
+                    delegate.keyDown(spec)
+                    switch spec.type {
+                    case .char: delegate.character(spec, text: spec.output)
+                    case .shift, .backspace, .globe: break
+                    default: delegate.special(spec)
+                    }
+                    delegate.keyUp(spec)
+                }
+                elements.append(element)
+            }
+            accessibilityElementsCache = elements
+            return elements
+        }
+        set { accessibilityElementsCache = newValue as? [UIAccessibilityElement] }
     }
 }

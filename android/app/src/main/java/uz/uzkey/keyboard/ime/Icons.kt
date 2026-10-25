@@ -5,7 +5,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 
-enum class Icon { SHIFT, SHIFT_ON, SHIFT_LOCKED, BACKSPACE, RETURN, SEARCH, SEND, NEXT, DONE, GLOBE, EMOJI, SETTINGS, HIDE, CONVERT }
+enum class Icon { SHIFT, SHIFT_ON, SHIFT_LOCKED, BACKSPACE, RETURN, SEARCH, SEND, NEXT, DONE, GLOBE, EMOJI, SETTINGS, HIDE, CONVERT, CLIPBOARD, MIC, PIN, CLOSE }
 
 /** Keyboard glyphs drawn from simple geometry on a 24×24 grid so every theme can tint them. */
 object Icons {
@@ -155,6 +155,46 @@ object Icons {
                 path.lineTo(5.5f, 16f)
                 path.lineTo(9f, 19.5f)
                 canvas.drawPath(path, paint)
+            }
+            Icon.CLIPBOARD -> {
+                paint.style = Paint.Style.STROKE
+                oval.set(5f, 5f, 19f, 21f)
+                canvas.drawRoundRect(oval, 2f, 2f, paint)
+                oval.set(9f, 3f, 15f, 7f)
+                paint.style = Paint.Style.FILL_AND_STROKE
+                canvas.drawRoundRect(oval, 1f, 1f, paint)
+                paint.style = Paint.Style.STROKE
+                canvas.drawLine(8.5f, 11f, 15.5f, 11f, paint)
+                canvas.drawLine(8.5f, 15f, 13.5f, 15f, paint)
+            }
+            Icon.MIC -> {
+                paint.style = Paint.Style.STROKE
+                oval.set(9f, 3f, 15f, 15f)
+                canvas.drawRoundRect(oval, 3f, 3f, paint)
+                path.reset()
+                path.moveTo(5.5f, 11f)
+                path.quadTo(5.5f, 18f, 12f, 18f)
+                path.quadTo(18.5f, 18f, 18.5f, 11f)
+                canvas.drawPath(path, paint)
+                canvas.drawLine(12f, 18f, 12f, 21f, paint)
+            }
+            Icon.PIN -> {
+                paint.style = Paint.Style.FILL_AND_STROKE
+                path.reset()
+                path.moveTo(9f, 3.5f)
+                path.lineTo(15f, 3.5f)
+                path.lineTo(14f, 10f)
+                path.lineTo(17.5f, 14f)
+                path.lineTo(6.5f, 14f)
+                path.lineTo(10f, 10f)
+                path.close()
+                canvas.drawPath(path, paint)
+                canvas.drawLine(12f, 14f, 12f, 20.5f, paint)
+            }
+            Icon.CLOSE -> {
+                paint.style = Paint.Style.STROKE
+                canvas.drawLine(7f, 7f, 17f, 17f, paint)
+                canvas.drawLine(17f, 7f, 7f, 17f, paint)
             }
         }
         canvas.restore()

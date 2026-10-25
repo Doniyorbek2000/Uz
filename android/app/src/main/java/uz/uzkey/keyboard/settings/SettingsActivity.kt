@@ -508,6 +508,8 @@ private fun TypingCard(settings: KeyboardSettings) {
     SectionCard(stringResource(R.string.typing_title)) {
         Column(Modifier.padding(vertical = 4.dp)) {
             SwitchRow(stringResource(R.string.pref_suggestions), stringResource(R.string.pref_suggestions_desc), settings.showSuggestions) { settings.showSuggestions = it }
+            SwitchRow(stringResource(R.string.pref_gesture), stringResource(R.string.pref_gesture_desc), settings.gestureTyping) { settings.gestureTyping = it }
+            SwitchRow(stringResource(R.string.pref_clipboard), stringResource(R.string.pref_clipboard_desc), settings.clipboardHistory) { settings.clipboardHistory = it }
             SwitchRow(stringResource(R.string.pref_autocorrect), stringResource(R.string.pref_autocorrect_desc), settings.autoCorrect) { settings.autoCorrect = it }
             SwitchRow(stringResource(R.string.pref_learn), stringResource(R.string.pref_learn_desc), settings.learnWords) { settings.learnWords = it }
             SwitchRow(stringResource(R.string.pref_autocap), null, settings.autoCapitalize) { settings.autoCapitalize = it }
@@ -574,6 +576,7 @@ private fun DictionaryCard(onClear: () -> Unit) {
 @Composable
 private fun TipsCard() {
     val tips = listOf(
+        "〰" to R.string.tip_gesture,
         "⌨️" to R.string.tip_cursor,
         "ö" to R.string.tip_long_press,
         "⇧" to R.string.tip_caps,

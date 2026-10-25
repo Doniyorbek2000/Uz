@@ -5,19 +5,24 @@ final class KeyboardInputView: UIInputView, UIInputViewAudioFeedback {
     var enableInputClicksWhenVisible: Bool { true }
 }
 
-final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate, EmojiPanelDelegate {
+final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate, EmojiPanelDelegate, ClipboardPanelDelegate {
 
     private enum Layer {
         case letters, symbols, symbolsMore, numpad
     }
 
     private enum LastAction {
-        case none, character, space, pick, autocorrect, delete
+        case none, character, space, pick, autocorrect, delete, gesture
     }
 
     private let settings = KeyboardSettings()
     private let keyboardView = KeyboardView()
     private let emojiView = EmojiPanelView()
+    private let clipboardView = ClipboardPanelView()
+    private let clipboardHistory = ClipboardHistory()
+    private var lastPasteboardChange = -1
+    private var lastGestureWord: String?
+    private var gestureAlternatives: [String] = []
     private let globeButton = UIButton(type: .custom)
     private var heightConstraint: NSLayoutConstraint?
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -64,9 +69,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         emojiView.delegate = self
         emojiView.translatesAutoresizingMaskIntoConstraints = false
         emojiView.isHidden = true
+        clipboardView.delegate = self
+        clipboardView.translatesAutoresizingMaskIntoConstraints = false
+        clipboardView.isHidden = true
         view.addSubview(keyboardView)
         view.addSubview(emojiView)
+        view.addSubview(clipboardView)
         NSLayoutConstraint.activate([
+            clipboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            clipboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            clipboardView.topAnchor.constraint(equalTo: view.topAnchor),
+            clipboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             keyboardView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -106,6 +119,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         // System gesture recognizers delay touches near the screen edges; keys must react instantly.
         view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
         if hasFullAccess { feedbackGenerator.prepare() }
+        captureClipboard()
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in self?.rebuildKeyboard() }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -257,12 +276,19 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         let theme = KeyboardTheme.resolve(settings.theme, traits: traitCollection)
         keyboardView.theme = theme
         emojiView.theme = theme
+        clipboardView.theme = theme
         view.backgroundColor = theme.background
     }
 
     private func rebuildKeyboard() {
         applyTheme()
         keyboardView.heightScale = CGFloat(settings.keyHeight.scale)
+        let isPad = traitCollection.userInterfaceIdiom == .pad
+        let screen = view.window?.windowScene?.screen.bounds.size ?? UIScreen.main.bounds.size
+        let landscape = screen.width > screen.height
+        keyboardView.baseRowHeight = isPad ? (landscape ? 62 : 58) : (landscape ? 40 : 54)
+        keyboardView.stripHeight = landscape && !isPad ? 36 : 44
+        keyboardView.gestureTyping = settings.gestureTyping && suggestionsAllowed
         keyboardView.showKeyPopup = settings.keyPopup
         keyboardView.enterIcon = enterIcon()
         let language = currentLayout
@@ -321,7 +347,30 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
 
     private func showKeyboardPanel() {
         emojiView.isHidden = true
+        clipboardView.isHidden = true
         keyboardView.isHidden = false
+    }
+
+    private func showClipboardPanel() {
+        keyboardView.cancelAllPointers()
+        if hasFullAccess {
+            captureClipboard()
+            clipboardView.setItems(settings.clipboardHistory ? clipboardHistory.items : [])
+        } else {
+            clipboardView.setItems([], message: KeyboardStrings.clipboardNeedsAccess)
+        }
+        keyboardView.isHidden = true
+        clipboardView.isHidden = false
+    }
+
+    /// Records the current pasteboard text (needs Full Access; skipped for secure fields).
+    private func captureClipboard() {
+        guard hasFullAccess, settings.clipboardHistory, proxy.isSecureTextEntry != true else { return }
+        let pasteboard = UIPasteboard.general
+        guard pasteboard.changeCount != lastPasteboardChange else { return }
+        lastPasteboardChange = pasteboard.changeCount
+        guard pasteboard.hasStrings, let text = pasteboard.string else { return }
+        clipboardHistory.add(text)
     }
 
     private func showEmojiPanel() {
@@ -341,6 +390,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         let convertAvailable = layer == .letters && UzbekTransliterator.script(forLayout: currentLayout.id) != nil
         guard settings.showSuggestions, suggestionsAllowed, layer != .numpad, (proxy.selectedText ?? "").isEmpty else {
             keyboardView.setSuggestions(.none, convertAvailable: convertAvailable)
+            return
+        }
+        if lastAction == .gesture, let gestureWord = lastGestureWord, !gestureAlternatives.isEmpty {
+            keyboardView.setSuggestions(Suggestions(typed: "", candidates: [gestureWord] + gestureAlternatives, typedIsKnown: true), convertAvailable: convertAvailable)
             return
         }
         let typed = TextRules.currentWord(before)
@@ -448,6 +501,19 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
 
     func suggestionPicked(_ text: String) {
         feedback(.char)
+        if lastAction == .gesture, let gestureWord = lastGestureWord {
+            if (proxy.documentContextBeforeInput ?? "").hasSuffix(gestureWord + " ") {
+                for _ in 0..<(gestureWord.count + 1) { proxy.deleteBackward() }
+                proxy.insertText(text + " ")
+            }
+            learn(nil, text)
+            lastGestureWord = nil
+            gestureAlternatives = []
+            autoSpacePending = true
+            lastAction = .pick
+            refreshState()
+            return
+        }
         let before = proxy.documentContextBeforeInput ?? ""
         let typed = TextRules.currentWord(before)
         let previous = TextRules.previousWord(before)
@@ -468,8 +534,84 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         case .convert: convertText()
         case .settings: openContainerApp()
         case .hide: dismissKeyboard()
+        case .clipboard: showClipboardPanel()
         }
     }
+
+    func gesture(_ path: [CGPoint]) {
+        let layout = currentLayout
+        guard let dictionary = dictionaries[layout.dictionary] else {
+            preloadDictionary(layout.dictionary)
+            return
+        }
+        let decoder = GestureDecoder(
+            dictionary: dictionary,
+            normalizer: KeyNormalizer.forDictionary(layout.dictionary),
+            keyCenters: keyboardView.gestureKeyCenters(),
+            keyWidth: keyboardView.gestureKeyWidth(),
+            user: userDictionary(layout.dictionary)
+        )
+        var words: [String] = []
+        for candidate in decoder.decode(path) {
+            let word = applyShift(candidate.word)
+            if !words.contains(word) { words.append(word) }
+        }
+        guard let word = words.first else { return }
+        let before = proxy.documentContextBeforeInput ?? ""
+        let needsSpace: Bool
+        if let last = before.last { needsSpace = !last.isWhitespace && !"([{«\"'".contains(last) } else { needsSpace = false }
+        proxy.insertText((needsSpace ? " " : "") + word + " ")
+        let previous: String? = needsSpace ? TextRules.currentWord(before) : TextRules.previousWord(before)
+        learn(previous?.isEmpty == true ? nil : previous, word)
+        lastGestureWord = word
+        gestureAlternatives = Array(words.dropFirst().prefix(2))
+        autoSpacePending = true
+        lastAutocorrect = nil
+        lastAction = .gesture
+        if shift == .once {
+            shift = .off
+            shiftIsAuto = false
+        }
+        refreshState()
+    }
+
+    private func applyShift(_ word: String) -> String {
+        switch shift {
+        case .off: return word
+        case .once: return word.prefix(1).uppercased() + word.dropFirst()
+        case .locked: return word.uppercased()
+        }
+    }
+
+    // MARK: ClipboardPanelDelegate
+
+    func clipPaste(_ text: String) {
+        proxy.insertText(text)
+        lastAction = .character
+        autoSpacePending = false
+    }
+
+    func clipRemove(_ text: String) {
+        clipboardHistory.remove(text)
+        clipboardView.setItems(clipboardHistory.items)
+    }
+
+    func clipTogglePin(_ text: String) {
+        clipboardHistory.togglePin(text)
+        clipboardView.setItems(clipboardHistory.items)
+    }
+
+    func clipClear() {
+        clipboardHistory.clearUnpinned()
+        clipboardView.setItems(clipboardHistory.items)
+    }
+
+    func clipClose() {
+        showKeyboardPanel()
+        refreshState()
+    }
+
+    func clipFeedback() { feedback(.char) }
 
     // MARK: EmojiPanelDelegate
 

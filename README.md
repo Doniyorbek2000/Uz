@@ -14,8 +14,22 @@ Android (Kotlin) va iOS (Swift) uçun alohida native ilova, tugmalar joylaşuvi 
 | **Alifbo ögirgiç (⇄)** | Matnni kirill ↔ lotin ↔ yangi lotin alifbosiga bir tugma bilan ögiradi |
 | **Tugmalar** | Bosib turganda qöşimça harflar (o → ö, oʻ, ó…), raqam belgilari, Caps Lock (Shift ×2), böş joyni surib kursorni siljitiş |
 | **Qulayliklar** | Ikki böş joy → nuqta, avtomatik boş harf, emoji paneli (700+), raqam/telefon maydonlari uçun raqamli klaviatura |
+| **Surib yoziş** | Barmoqni kötarmasdan harflar ustida surib söz yoziş (5 ta tilning hammasida) |
+| **Bufer tarixi** | Oxirgi nusxa olingan matnlar (24 soat, muhimlarini saqlab qöyiş mumkin; parollar saqlanmaydi) |
+| **Ovoz bilan yoziş** | Android: 🎤 tugmasi Google ovozli yozişiga ötadi; iOS: tizimning diktovka tugmasi (klaviatura ostida) |
+| **Maxsus imkoniyatlar** | TalkBack va VoiceOver: har bir tugma övozli öqiladi, barmoqni kötarib yoziş |
+| **Ekranlar** | Telefon, planşet, yotiq holat uçun alohida ölçamlar |
 | **Dizayn** | 5 ta mavzu (Tizim, Yoruğ, Qoronği, Qora AMOLED, Moviy), 3 xil tugma balandligi |
 | **Maxfiylik** | Android ilovada internet ruxsati umuman yöq; iOS da hech narsa tarmoqqa yuborilmaydi |
+
+## Skrinşotlar
+
+CI har safar klaviaturani haqiqiy Android emulyatorida va iOS da çizib, rasmlarni `docs/screenshots/` ga saqlaydi.
+
+| Özbekça (yangi alifbo) | Ўзбекча | Русский |
+|---|---|---|
+| ![](docs/screenshots/android-uz-2027-light.png) | ![](docs/screenshots/android-uz-cyrl-blue.png) | ![](docs/screenshots/android-ru-light.png) |
+| ![](docs/screenshots/ios-uz-2027-light.png) | ![](docs/screenshots/ios-uz-cyrl-blue.png) | ![](docs/screenshots/ios-ru-light.png) |
 
 ## Örnatiş
 

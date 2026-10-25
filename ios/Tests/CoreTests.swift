@@ -85,6 +85,47 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(SuggestionEngine.distanceUpToOne(Array("abcd".utf16), Array("badc".utf16), 4), 2)
     }
 
+    func testGestureDecoding() {
+        let keyWidth: CGFloat = 33
+        var centers: [String: CGPoint] = [:]
+        for (row, letters) in ["qwertyuiop", "asdfghjkl", "zxcvbnm"].enumerated() {
+            let offset = CGFloat(11 - letters.count) * keyWidth / 2
+            for (i, c) in letters.enumerated() {
+                centers[String(c)] = CGPoint(x: offset + CGFloat(i) * keyWidth + keyWidth / 2, y: CGFloat(row) * 54 + 27)
+            }
+        }
+        let dictionary = WordDictionary.load(text: "hello\t200\nhelp\t190\nthe\t220\ntest\t180\ntext\t170\n")
+        let decoder = GestureDecoder(dictionary: dictionary, normalizer: .standard, keyCenters: centers, keyWidth: keyWidth)
+        func path(_ word: String) -> [CGPoint] {
+            let stops = word.compactMap { centers[String($0)] }
+            var points: [CGPoint] = []
+            for i in 1..<stops.count {
+                for step in 0..<10 {
+                    let t = CGFloat(step) / 10
+                    let wobble = 6 * sin(t * 6.283 + CGFloat(i))
+                    points.append(CGPoint(x: stops[i - 1].x + (stops[i].x - stops[i - 1].x) * t + wobble, y: stops[i - 1].y + (stops[i].y - stops[i - 1].y) * t + wobble))
+                }
+            }
+            points.append(stops[stops.count - 1])
+            return points
+        }
+        XCTAssertEqual(decoder.decode(path("helo")).first?.word, "hello")
+        XCTAssertEqual(decoder.decode(path("test")).first?.word, "test")
+        XCTAssertEqual(decoder.decode(path("the")).first?.word, "the")
+        XCTAssertEqual(decoder.keySequence("hello"), ["h", "e", "l", "o"])
+    }
+
+    func testClipboardHistory() {
+        let defaults = UserDefaults(suiteName: "uzkey-tests-\(UUID().uuidString)")!
+        let history = ClipboardHistory(defaults: defaults)
+        history.add("first")
+        history.add("second")
+        history.togglePin("first")
+        XCTAssertEqual(history.items.map(\.text), ["first", "second"])
+        history.clearUnpinned()
+        XCTAssertEqual(history.items.map(\.text), ["first"])
+    }
+
     func testBundledDictionariesLoad() throws {
         for id in ["uz_latn_2027", "uz_latn", "uz_cyrl", "ru", "en"] {
             let url = try XCTUnwrap(SharedResources.url("dictionaries/\(id).txt"))

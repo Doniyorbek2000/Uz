@@ -50,6 +50,15 @@ class DictionaryStore(private val context: Context) {
         return engines.getOrPut(dictionaryId) { SuggestionEngine(dictionary, user(dictionaryId), KeyNormalizer.forDictionary(dictionaryId)) }
     }
 
+    /** The bundled dictionary if it has finished loading (starts loading it otherwise). */
+    fun dictionary(dictionaryId: String): WordDictionary? {
+        if (dictionaryId.isEmpty()) return null
+        return dictionaries[dictionaryId] ?: run {
+            preload(dictionaryId)
+            null
+        }
+    }
+
     fun preload(dictionaryId: String) {
         if (dictionaryId.isEmpty() || dictionaries.containsKey(dictionaryId) || !loading.add(dictionaryId)) return
         executor.execute {

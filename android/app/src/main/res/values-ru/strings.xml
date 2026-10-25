@@ -56,4 +56,26 @@
     <string name="version">Версия %1$s</string>
     <string name="done_badge">Готово</string>
     <string name="languages_min_one">Оставьте хотя бы один язык</string>
+    <string name="clipboard_title">Буфер обмена</string>
+    <string name="clipboard_clear">Очистить</string>
+    <string name="clipboard_empty">Скопированный текст появится здесь. Удерживайте запись, чтобы закрепить её.</string>
+    <string name="clipboard_remove">Удалить</string>
+    <string name="a11y_shift">Shift</string>
+    <string name="a11y_shift_on">Shift включён</string>
+    <string name="a11y_caps_lock">Caps Lock включён</string>
+    <string name="a11y_delete">Удалить</string>
+    <string name="a11y_space">Пробел</string>
+    <string name="a11y_enter">Ввод</string>
+    <string name="a11y_symbols">Символы</string>
+    <string name="a11y_letters">Буквы</string>
+    <string name="a11y_language">Сменить язык, сейчас %1$s</string>
+    <string name="a11y_emoji">Эмодзи</string>
+    <string name="a11y_convert">Сменить алфавит</string>
+    <string name="a11y_voice">Голосовой ввод</string>
+    <string name="a11y_hide">Скрыть клавиатуру</string>
+    <string name="pref_gesture">Непрерывный ввод</string>
+    <string name="pref_gesture_desc">Проведите пальцем по буквам, чтобы ввести слово</string>
+    <string name="pref_clipboard">История буфера обмена</string>
+    <string name="pref_clipboard_desc">Хранить скопированный текст сутки (пароли не сохраняются)</string>
+    <string name="tip_gesture">Вводите слова, не отрывая палец от букв</string>
 </resources>

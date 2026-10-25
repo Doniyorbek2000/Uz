@@ -1,7 +1,7 @@
 import UIKit
 
 enum Icon {
-    case shift, shiftOn, shiftLocked, backspace, returnKey, search, send, next, done, globe, emoji, settings, hide, convert
+    case shift, shiftOn, shiftLocked, backspace, returnKey, search, send, next, done, globe, emoji, settings, hide, convert, clipboard, pin, close
 }
 
 /// Keyboard glyphs drawn from simple geometry on a 24×24 grid so every theme can tint them.
@@ -108,6 +108,28 @@ enum Icons {
             line([CGPoint(x: 15, y: 4.5), CGPoint(x: 18.5, y: 8), CGPoint(x: 15, y: 11.5)])
             line([CGPoint(x: 20, y: 16), CGPoint(x: 5.5, y: 16)])
             line([CGPoint(x: 9, y: 12.5), CGPoint(x: 5.5, y: 16), CGPoint(x: 9, y: 19.5)])
+        case .clipboard:
+            context.addPath(UIBezierPath(roundedRect: CGRect(x: 5, y: 5, width: 14, height: 16), cornerRadius: 2).cgPath)
+            context.strokePath()
+            context.addPath(UIBezierPath(roundedRect: CGRect(x: 9, y: 3, width: 6, height: 4), cornerRadius: 1).cgPath)
+            context.drawPath(using: .fillStroke)
+            line([CGPoint(x: 8.5, y: 11), CGPoint(x: 15.5, y: 11)])
+            line([CGPoint(x: 8.5, y: 15), CGPoint(x: 13.5, y: 15)])
+        case .pin:
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: 9, y: 3.5))
+            path.addLine(to: CGPoint(x: 15, y: 3.5))
+            path.addLine(to: CGPoint(x: 14, y: 10))
+            path.addLine(to: CGPoint(x: 17.5, y: 14))
+            path.addLine(to: CGPoint(x: 6.5, y: 14))
+            path.addLine(to: CGPoint(x: 10, y: 10))
+            path.close()
+            context.addPath(path.cgPath)
+            context.drawPath(using: .fillStroke)
+            line([CGPoint(x: 12, y: 14), CGPoint(x: 12, y: 20.5)])
+        case .close:
+            line([CGPoint(x: 7, y: 7), CGPoint(x: 17, y: 17)])
+            line([CGPoint(x: 17, y: 7), CGPoint(x: 7, y: 17)])
         }
         context.restoreGState()
     }
