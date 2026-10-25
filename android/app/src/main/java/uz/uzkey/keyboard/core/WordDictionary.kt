@@ -10,11 +10,23 @@ class WordDictionary private constructor(
     private val keys: Array<String>,
     private val frequencies: IntArray,
 ) {
+    /** Letter-presence bitmask of every key, see [maskOf]. */
+    private val masks = LongArray(keys.size) { maskOf(keys[it]) }
+
+    /** Key lengths and first two letters as primitives, so full scans rarely touch the strings. */
+    private val lengths = IntArray(keys.size) { keys[it].length }
+    private val firstChars = CharArray(keys.size) { keys[it].getOrElse(0) { ' ' } }
+    private val secondChars = CharArray(keys.size) { keys[it].getOrElse(1) { ' ' } }
+
     val size: Int get() = words.size
 
     fun word(index: Int): String = words[index]
     fun key(index: Int): String = keys[index]
     fun frequency(index: Int): Int = frequencies[index]
+    fun mask(index: Int): Long = masks[index]
+    fun keyLength(index: Int): Int = lengths[index]
+    fun firstChar(index: Int): Char = firstChars[index]
+    fun secondChar(index: Int): Char = secondChars[index]
 
     fun indexOf(key: String): Int {
         val index = lowerBound(key)
@@ -46,6 +58,16 @@ class WordDictionary private constructor(
 
     companion object {
         val EMPTY = WordDictionary(emptyArray(), emptyArray(), IntArray(0))
+
+        /**
+         * One bit per letter present (letters hashed into 64 bits). An edit changes at most two bits, so two
+         * strings within edit distance d differ in at most 2·d bits — a cheap filter before computing distances.
+         */
+        fun maskOf(text: String, length: Int = text.length): Long {
+            var mask = 0L
+            for (i in 0 until length) mask = mask or (1L shl (text[i].code and 63))
+            return mask
+        }
 
         /** Parses `word<TAB>frequency` lines. */
         fun load(stream: InputStream, normalizer: KeyNormalizer = KeyNormalizer.DEFAULT): WordDictionary {

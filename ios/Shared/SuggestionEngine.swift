@@ -69,12 +69,27 @@ final class SuggestionEngine {
             return count == 0 ? 0 : 30 * log(1 + Double(count))
         }
 
+        // Completions from the bundled dictionary. Short prefixes match thousands of words, so only the best
+        // few are kept (a word outside them cannot reach the final list). Learned-word bonuses are looked up
+        // only for keys the user has typed before, which avoids building a String for every candidate.
+        var learnedBonus: [String: Double] = [:]
+        user.forEachPrefix(typedKeyString) { key, _ in learnedBonus[key] = user.boost(key) + contextBoost(key) }
+        let keep = limit + 2
+        var best: [(index: Int, score: Double)] = []
+        best.reserveCapacity(keep + 1)
         for index in dictionary.prefixRange(typedKey) {
-            let keyUnits = dictionary.key(at: index)
-            let key = String(decoding: keyUnits, as: UTF16.self)
-            let lengthPenalty = Double(min(keyUnits.count - typedKey.count, 8)) * 1.5
-            let exact = keyUnits == typedKey ? Self.exactBonus : 0
-            offer(key, dictionary.word(at: index), Double(dictionary.frequency(at: index)) + Self.completionBonus + exact - lengthPenalty + user.boost(key) + contextBoost(key))
+            let length = dictionary.keyLength(at: index)
+            // Inside the prefix range, a key as long as the typed one is the typed word itself.
+            var score = Double(dictionary.frequency(at: index)) + Self.completionBonus - Double(min(length - typedKey.count, 8)) * 1.5
+            if length == typedKey.count { score += Self.exactBonus }
+            if !learnedBonus.isEmpty { score += learnedBonus[dictionary.keyString(at: index)] ?? 0 }
+            if best.count == keep, let last = best.last, score <= last.score { continue }
+            let position = best.firstIndex { $0.score < score } ?? best.count
+            best.insert((index, score), at: position)
+            if best.count > keep { best.removeLast() }
+        }
+        for entry in best {
+            offer(dictionary.keyString(at: entry.index), dictionary.word(at: entry.index), entry.score)
         }
 
         user.forEachPrefix(typedKeyString) { key, entry in
@@ -134,15 +149,19 @@ final class SuggestionEngine {
         let allowShorter = typedLength >= 5
         let first = typed[0]
         let second = typedLength > 1 ? typed[1] : first
+        let typedMask = WordDictionary.mask(of: typed)
+        let maxMaskDifference = 2 * maxDistance
         for index in 0..<dictionary.count {
-            let key = dictionary.key(at: index)
-            let keyLength = key.count
+            let keyLength = dictionary.keyLength(at: index)
             if keyLength > Self.maxKeyLength || keyLength < 2 { continue }
             if keyLength < typedLength && (!allowShorter || typedLength - keyLength > maxDistance) { continue }
-            let firstMatches = key[0] == first || (key[0] == second && key[1] == first)
+            // Typos rarely hit the first letter; also accept a swap of the first two letters.
+            let keyFirst = dictionary.firstUnit(at: index)
+            let firstMatches = keyFirst == first || (keyFirst == second && dictionary.secondUnit(at: index) == first)
             if !firstMatches && !(allowShorter && abs(keyLength - typedLength) <= 1) { continue }
+            let key = dictionary.key(at: index)
             var kind: Correction?
-            if abs(keyLength - typedLength) <= maxDistance {
+            if abs(keyLength - typedLength) <= maxDistance && (typedMask ^ dictionary.mask(at: index)).nonzeroBitCount <= maxMaskDifference {
                 let d = distance(typed, key, keyLength, maxDistance)
                 if d == 0 { continue }
                 if d == 1 { kind = .full } else if d == 2 && maxDistance >= 2 { kind = .double }

@@ -21,6 +21,12 @@ final class WordDictionary {
     private let words: [String]
     private let keys: [WordKey]
     private let frequencies: [Int]
+    /// Letter-presence bitmask of every key, see `mask(of:)`.
+    private let masks: [UInt64]
+    /// Key lengths and first two units as plain values, so full scans rarely touch the key arrays.
+    private let lengths: [Int]
+    private let firstUnits: [UInt16]
+    private let secondUnits: [UInt16]
 
     static let empty = WordDictionary(words: [], keys: [], frequencies: [])
 
@@ -28,13 +34,30 @@ final class WordDictionary {
         self.words = words
         self.keys = keys
         self.frequencies = frequencies
+        masks = keys.map { Self.mask(of: $0) }
+        lengths = keys.map { $0.count }
+        firstUnits = keys.map { $0.first ?? 0 }
+        secondUnits = keys.map { $0.count > 1 ? $0[1] : 0 }
     }
 
     var count: Int { words.count }
 
     func word(at index: Int) -> String { words[index] }
     func key(at index: Int) -> WordKey { keys[index] }
+    func keyString(at index: Int) -> String { String(decoding: keys[index], as: UTF16.self) }
     func frequency(at index: Int) -> Int { frequencies[index] }
+    func mask(at index: Int) -> UInt64 { masks[index] }
+    func keyLength(at index: Int) -> Int { lengths[index] }
+    func firstUnit(at index: Int) -> UInt16 { firstUnits[index] }
+    func secondUnit(at index: Int) -> UInt16 { secondUnits[index] }
+
+    /// One bit per letter present (letters hashed into 64 bits). An edit changes at most two bits, so two
+    /// keys within edit distance d differ in at most 2·d bits — a cheap filter before computing distances.
+    static func mask(of key: WordKey) -> UInt64 {
+        var mask: UInt64 = 0
+        for unit in key { mask |= 1 << UInt64(unit & 63) }
+        return mask
+    }
 
     func index(of key: WordKey) -> Int? {
         let i = lowerBound(key)
