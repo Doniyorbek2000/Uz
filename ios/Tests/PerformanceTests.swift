@@ -94,7 +94,9 @@ final class PerformanceTests: XCTestCase {
             let dictionary = try loadDictionary(id)
             let milliseconds = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
             print(String(format: "load %@: %d words in %.0f ms", id, dictionary.count, milliseconds))
-            XCTAssertLessThan(milliseconds, 400, "\(id) takes \(milliseconds) ms to load")
+            // Shared CI Macs vary several-fold in speed (typically 100–200 ms here); before keys were precomputed
+            // the slowest runners took 2–4 s, which this bound catches without failing on a busy machine.
+            XCTAssertLessThan(milliseconds, 1_200, "\(id) takes \(milliseconds) ms to load")
         }
     }
 }

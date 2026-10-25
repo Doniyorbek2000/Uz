@@ -102,7 +102,7 @@ final class WordDictionary {
         var keyed = false
         data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
             let bytes = buffer.bindMemory(to: UInt8.self)
-            let tab: UInt8 = 9, newline: UInt8 = 10, carriageReturn: UInt8 = 13
+            let tab: UInt8 = 9, newline: UInt8 = 10, carriageReturn: UInt8 = 13, space: UInt8 = 32
             var lineStart = 0
             while lineStart < bytes.count {
                 var lineEnd = lineStart
@@ -118,9 +118,12 @@ final class WordDictionary {
                 }
                 var firstTab = lineStart
                 while firstTab < contentEnd && bytes[firstTab] != tab { firstTab += 1 }
-                let word = String(decoding: UnsafeBufferPointer(rebasing: bytes[lineStart..<firstTab]), as: UTF8.self)
-                    .trimmingCharacters(in: .whitespaces)
-                guard !word.isEmpty else { continue }
+                // Trim spaces on the bytes: Foundation trimming per line dominated the load time.
+                var wordStart = lineStart, wordEnd = firstTab
+                while wordStart < wordEnd && bytes[wordStart] == space { wordStart += 1 }
+                while wordEnd > wordStart && bytes[wordEnd - 1] == space { wordEnd -= 1 }
+                guard wordEnd > wordStart else { continue }
+                let word = String(decoding: UnsafeBufferPointer(rebasing: bytes[wordStart..<wordEnd]), as: UTF8.self)
                 var frequency = 0
                 var position = firstTab + 1
                 var sawDigit = false
