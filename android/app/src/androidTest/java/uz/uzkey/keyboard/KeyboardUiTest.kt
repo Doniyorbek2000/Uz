@@ -207,16 +207,28 @@ class KeyboardUiTest {
 
     // ---- Helpers --------------------------------------------------------------------------
 
+    /**
+     * `am instrument` force-stops the package, and the system then resets the current keyboard to its default
+     * asynchronously; select UzKey until the choice has held for two seconds.
+     */
     private fun selectKeyboard() {
         shell("ime enable $IME")
-        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        val deadline = SystemClock.uptimeMillis() + 3 * TIMEOUT_MS
+        var heldSince = 0L
         while (SystemClock.uptimeMillis() < deadline) {
-            shell("ime set $IME")
-            if (Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD) == IME) return
-            SystemClock.sleep(500)
+            if (currentKeyboard() == IME) {
+                if (heldSince == 0L) heldSince = SystemClock.uptimeMillis()
+                if (SystemClock.uptimeMillis() - heldSince >= 2_000) return
+            } else {
+                heldSince = 0L
+                shell("ime set $IME")
+            }
+            SystemClock.sleep(250)
         }
-        fail("could not make UzKey the current keyboard")
+        fail("could not make UzKey the current keyboard (current: ${currentKeyboard()})")
     }
+
+    private fun currentKeyboard(): String? = Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
 
     private fun shell(command: String): String =
         ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use {
@@ -230,6 +242,7 @@ class KeyboardUiTest {
     private fun focus(name: String) {
         // A tap that lands while the window is still gaining focus does not open the keyboard; tap again.
         repeat(3) {
+            if (currentKeyboard() != IME) selectKeyboard()
             device.findObject(field(name)).click()
             // Any key will do: the number pad has no space bar.
             if (device.wait(Until.hasObject(By.clazz(KEY_CLASS)), TIMEOUT_MS / 2)) {
