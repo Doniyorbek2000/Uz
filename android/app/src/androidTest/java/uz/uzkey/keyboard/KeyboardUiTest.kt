@@ -228,10 +228,16 @@ class KeyboardUiTest {
     private fun field(name: String): BySelector = By.res(context.packageName, name)
 
     private fun focus(name: String) {
-        device.findObject(field(name)).click()
-        // Any key will do: the number pad has no space bar.
-        assertNotNull("keyboard did not open", device.wait(Until.findObject(By.clazz(KEY_CLASS)), TIMEOUT_MS))
-        SystemClock.sleep(SETTLE_MS)
+        // A tap that lands while the window is still gaining focus does not open the keyboard; tap again.
+        repeat(3) {
+            device.findObject(field(name)).click()
+            // Any key will do: the number pad has no space bar.
+            if (device.wait(Until.hasObject(By.clazz(KEY_CLASS)), TIMEOUT_MS / 2)) {
+                SystemClock.sleep(SETTLE_MS)
+                return
+            }
+        }
+        fail("keyboard did not open")
     }
 
     private fun textInto(name: String, text: String) {
