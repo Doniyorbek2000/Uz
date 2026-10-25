@@ -5,6 +5,8 @@ import android.graphics.Point
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.provider.Settings
+import android.view.InputDevice
+import android.view.MotionEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -94,10 +96,8 @@ class KeyboardUiTest {
         type("b")
         type("c")
         assertFieldText(TEXT, "ABc")
-        val shift = key(string(R.string.a11y_shift))
-        shift.click()
-        shift.click()
-        assertNotNull("caps lock is not shown", findKey(string(R.string.a11y_caps_lock)))
+        doubleTap(key(string(R.string.a11y_shift)))
+        assertNotNull("caps lock is not shown", device.wait(Until.findObject(keyDesc(string(R.string.a11y_caps_lock))), TIMEOUT_MS))
         type("de")
         assertFieldText(TEXT, "ABcDE")
     }
@@ -248,6 +248,26 @@ class KeyboardUiTest {
 
     private fun key(label: String): UiObject2 =
         device.wait(Until.findObject(keyDesc(label)), TIMEOUT_MS) ?: throw AssertionError("key “$label” not found")
+
+    /** Two taps within the keyboard's double-tap window; UiObject2.click() is too slow for that. */
+    private fun doubleTap(target: UiObject2) {
+        val bounds = target.visibleBounds
+        val x = bounds.exactCenterX()
+        val y = bounds.exactCenterY()
+        repeat(2) {
+            val downTime = SystemClock.uptimeMillis()
+            inject(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0))
+            SystemClock.sleep(40)
+            inject(MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x, y, 0))
+            SystemClock.sleep(60)
+        }
+    }
+
+    private fun inject(event: MotionEvent) {
+        event.source = InputDevice.SOURCE_TOUCHSCREEN
+        assertTrue("could not inject a touch", instrumentation.uiAutomation.injectInputEvent(event, true))
+        event.recycle()
+    }
 
     private fun type(text: String) {
         for (char in text) {
