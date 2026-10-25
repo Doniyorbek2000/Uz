@@ -36,7 +36,7 @@ jobs:
           UZKEY_KEYSTORE_PASSWORD: ${{ secrets.UZKEY_KEYSTORE_PASSWORD }}
           UZKEY_KEY_ALIAS: ${{ secrets.UZKEY_KEY_ALIAS }}
           UZKEY_KEY_PASSWORD: ${{ secrets.UZKEY_KEY_PASSWORD }}
-        run: ./gradlew --stacktrace testDebugUnitTest assembleDebug assembleRelease
+        run: ./gradlew --stacktrace testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
@@ -44,6 +44,12 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/*.apk
             android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uzkey-android-tests
+          path: android/app/build/outputs/apk/androidTest/debug/*.apk
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -66,13 +72,18 @@ jobs:
           name: uzkey-android
           path: apk
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: uzkey-android-tests
+          path: apk-tests
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Capture keyboard screenshots on an emulator
+      - name: Screenshots and instrumented UI tests on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -81,7 +92,16 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash tools/ci/android_screenshots.sh "$(ls apk/debug/*.apk | head -1)" docs/screenshots
+          script: |
+            bash tools/ci/android_screenshots.sh "$(ls apk/debug/*.apk | head -1)" docs/screenshots
+            bash tools/ci/android_ui_tests.sh "$(ls apk-tests/*.apk | head -1)" build/android-ui-tests.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-ui-tests
+          path: build/android-ui-tests*.txt
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:

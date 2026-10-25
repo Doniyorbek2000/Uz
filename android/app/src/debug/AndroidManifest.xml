@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Debug builds only: a screen with one field per input type for the instrumented keyboard tests.
+             It runs in its own process so the editor and the keyboard talk over IPC, as with any real app. -->
+        <activity
+            android:name=".debug.TestFieldsActivity"
+            android:exported="false"
+            android:process=":testfields"
+            android:theme="@style/Theme.UzKey"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+    </application>
+</manifest>

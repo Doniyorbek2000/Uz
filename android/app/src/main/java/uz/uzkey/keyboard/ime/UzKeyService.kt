@@ -767,7 +767,8 @@ class UzKeyService :
         val now = SystemClock.uptimeMillis()
         ic.beginBatchEdit()
         val before = ic.getTextBeforeCursor(64, 0) ?: ""
-        val doubleSpace = settings.doubleSpacePeriod && lastAction == LastAction.SPACE && now - lastSpaceTime < DOUBLE_SPACE_MS &&
+        val doubleSpace = settings.doubleSpacePeriod && (lastAction == LastAction.SPACE || lastAction == LastAction.AUTOCORRECT) &&
+            now - lastSpaceTime < DOUBLE_SPACE_MS &&
             before.length >= 2 && before[before.length - 1] == ' ' &&
             (before[before.length - 2].isLetterOrDigit() || before[before.length - 2] in "\"')»”")
         var autocorrected = false

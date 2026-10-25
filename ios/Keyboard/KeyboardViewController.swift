@@ -711,7 +711,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         let now = ProcessInfo.processInfo.systemUptime
         let before = proxy.documentContextBeforeInput ?? ""
         let chars = Array(before.suffix(2))
-        let doubleSpace = settings.doubleSpacePeriod && lastAction == .space && now - lastSpaceTime < Self.doubleSpaceInterval &&
+        let doubleSpace = settings.doubleSpacePeriod && (lastAction == .space || lastAction == .autocorrect) &&
+            now - lastSpaceTime < Self.doubleSpaceInterval &&
             chars.count == 2 && chars[1] == " " && (chars[0].isLetter || chars[0].isNumber || "\"')»”".contains(chars[0]))
         var autocorrected = false
         if doubleSpace {
