@@ -157,6 +157,9 @@ object UzbekTransliterator {
             val (cyrillic, consumed) = when {
                 (lower == 'o' || lower == 'g') && nextLower != null && nextLower in TURNED_COMMA_LIKE ->
                     (if (lower == 'o') "ў" else "ғ") to 2
+                // Russian loanwords write ц as "ts" before -iya/-ion after a vowel: revolyutsiya → революция.
+                lower == 't' && nextLower == 's' && prevLower in LATIN_VOWELS &&
+                    (text.startsWith("iy", i + 2, ignoreCase = true) || text.startsWith("io", i + 2, ignoreCase = true)) -> "ц" to 2
                 lower == 's' && nextLower == 'h' -> "ш" to 2
                 lower == 'c' && nextLower == 'h' -> "ч" to 2
                 lower == 'y' && nextLower == 'o' && (afterNext == null || afterNext !in TURNED_COMMA_LIKE) -> "ё" to 2

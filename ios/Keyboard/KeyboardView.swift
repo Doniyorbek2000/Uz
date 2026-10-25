@@ -77,7 +77,14 @@ final class KeyboardView: UIView {
     weak var delegate: KeyboardViewDelegate?
 
     var theme: KeyboardTheme = .light { didSet { setNeedsDisplay() } }
-    var shiftState: ShiftState = .off { didSet { if oldValue != shiftState { setNeedsDisplay() } } }
+    var shiftState: ShiftState = .off {
+        didSet {
+            guard oldValue != shiftState else { return }
+            setNeedsDisplay()
+            // Letter labels and the shift key's description depend on the shift state.
+            accessibilityElementsCache = nil
+        }
+    }
     var isLetterLayer = true
     var spaceLabel = ""
     var languageLabel = ""

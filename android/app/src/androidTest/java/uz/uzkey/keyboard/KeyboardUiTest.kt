@@ -231,7 +231,8 @@ class KeyboardUiTest {
 
     private fun focus(name: String) {
         device.findObject(field(name)).click()
-        assertNotNull("keyboard did not open", device.wait(Until.findObject(keyDesc(string(R.string.a11y_space))), TIMEOUT_MS))
+        // Any key will do: the number pad has no space bar.
+        assertNotNull("keyboard did not open", device.wait(Until.findObject(By.clazz(KEY_CLASS)), TIMEOUT_MS))
         SystemClock.sleep(SETTLE_MS)
     }
 

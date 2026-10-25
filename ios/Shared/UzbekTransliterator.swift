@@ -156,6 +156,10 @@ enum UzbekTransliterator {
             if (l == "o" || l == "g"), let n = nextLower, turnedCommaLike.contains(n) {
                 cyrillic = l == "o" ? "ў" : "ғ"
                 consumed = 2
+            } else if l == "t" && nextLower == "s", let p = prevLower, latinVowels.contains(p), i + 3 < chars.count,
+                      lower(chars[i + 2]) == "i", lower(chars[i + 3]) == "y" || lower(chars[i + 3]) == "o" {
+                // Russian loanwords write ц as "ts" before -iya/-ion after a vowel: revolyutsiya → революция.
+                cyrillic = "ц"; consumed = 2
             } else if l == "s" && nextLower == "h" {
                 cyrillic = "ш"; consumed = 2
             } else if l == "c" && nextLower == "h" {

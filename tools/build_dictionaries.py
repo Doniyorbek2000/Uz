@@ -143,10 +143,10 @@ def to_cyrillic(word: str) -> str:
     while i < len(lower):
         rest = lower[i:]
         prev = lower[i - 1] if i > 0 else ""
-        # Russian loanwords: ц is written "ts" after a vowel and "s" after a consonant
-        # (revolyutsiya → революция, konferensiya → конференция, stansiya → станция).
-        if rest.startswith(("tsiya", "tsion")) or (prev == "n" and rest.startswith(("siya", "sion"))):
-            out.append("ц"); i += 2 if rest[0] == "t" else 1
+        # Russian loanwords write ц as "ts" after a vowel (revolyutsiya → революция). After a consonant it is
+        # spelled "s", which cannot be told apart from a real с (konferensiya vs pensiya), so that stays с.
+        if rest.startswith(("tsiya", "tsion")):
+            out.append("ц"); i += 2
         elif rest.startswith("o'"):
             out.append("ў"); i += 2
         elif rest.startswith("g'"):
