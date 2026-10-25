@@ -5,8 +5,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A newer push to the same branch makes an older run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
+    # Branches of this repository are already built on push; run pull requests only when they come from forks.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     env:
       HAS_KEYSTORE: ${{ secrets.UZKEY_KEYSTORE_BASE64 != '' }}

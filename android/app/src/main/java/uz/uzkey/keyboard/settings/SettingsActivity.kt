@@ -579,7 +579,10 @@ private fun KeysCard(settings: KeyboardSettings) {
 private fun SoundCard(settings: KeyboardSettings) {
     val context = LocalContext.current
     val player = remember { KeySoundPlayer(context.applicationContext) }
-    DisposableEffect(player) { onDispose { player.release() } }
+    DisposableEffect(player) {
+        player.preload(settings.soundPack)
+        onDispose { player.release() }
+    }
     val scope = rememberCoroutineScope()
     var previewJob by remember { mutableStateOf<Job?>(null) }
     var enabled by remember { mutableStateOf(settings.keySound) }
@@ -623,6 +626,7 @@ private fun SoundCard(settings: KeyboardSettings) {
                             onClick = {
                                 pack = id
                                 settings.soundPack = id
+                                player.preload(id)
                                 preview(id)
                             },
                             label = { Text("$emoji  ${stringResource(name)}") },

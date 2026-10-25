@@ -59,6 +59,11 @@ class KeySoundPlayer(private val context: Context) {
         if (sound != 0) pool?.play(sound, level, level, 1, 0, 1f)
     }
 
+    /** Loads a pack ahead of the first key press (SoundPool decodes asynchronously, so a cold press is silent). */
+    fun preload(packId: String) {
+        if (packId != SoundPacks.SYSTEM) prepare(packId)
+    }
+
     /** Frees the loaded sounds, e.g. when key sounds are turned off. */
     fun release() {
         pool?.release()

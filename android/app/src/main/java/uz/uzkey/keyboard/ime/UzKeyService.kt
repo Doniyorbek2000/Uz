@@ -158,6 +158,7 @@ class UzKeyService :
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         configureForField(info)
+        if (settings.keySound) soundPlayer.preload(settings.soundPack)
         if (settings.userDictionaryEpoch != userDictionaryEpoch) {
             userDictionaryEpoch = settings.userDictionaryEpoch
             store.clearLearnedWords()
@@ -195,7 +196,9 @@ class UzKeyService :
     }
 
     override fun onSharedPreferenceChanged(preferences: SharedPreferences, key: String?) {
-        if (key == KeyboardSettings.KEY_SOUND && !settings.keySound) soundPlayer.release()
+        if (key == KeyboardSettings.KEY_SOUND || key == KeyboardSettings.KEY_SOUND_PACK) {
+            if (settings.keySound) soundPlayer.preload(settings.soundPack) else soundPlayer.release()
+        }
         if (key == KeyboardSettings.KEY_USER_DICT_EPOCH) {
             userDictionaryEpoch = settings.userDictionaryEpoch
             store.clearLearnedWords()

@@ -48,6 +48,11 @@ final class KeySoundPlayer {
         return true
     }
 
+    /// Decodes a pack ahead of the first key press.
+    func preload(packId: String) {
+        if packId != SoundPacks.system { _ = prepare(packId) }
+    }
+
     /// Pauses the audio engine while the keyboard is hidden; the next sound restarts it.
     func suspend() {
         engine.pause()

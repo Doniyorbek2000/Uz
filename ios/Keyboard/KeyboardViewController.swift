@@ -128,6 +128,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         // System gesture recognizers delay touches near the screen edges; keys must react instantly.
         view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
         if hasFullAccess { feedbackGenerator.prepare() }
+        if hasFullAccess && settings.keySound { soundPlayer.preload(packId: settings.soundPack) }
         // The pasteboard is read only when the clipboard panel is opened: reading it here would make iOS
         // show its "UzKey pasted from …" notice every time the keyboard appears after a copy.
     }
