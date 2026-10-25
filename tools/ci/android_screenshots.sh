@@ -59,25 +59,37 @@ XML
   select_ime
 }
 
-focus_text_field() {
-  adb shell am start -W -n "$PACKAGE/.settings.SettingsActivity" > /dev/null
-  sleep 3
-  adb shell uiautomator dump /sdcard/ui.xml > /dev/null
-  adb pull /sdcard/ui.xml /tmp/ui.xml > /dev/null
-  local center
-  center=$(python3 - <<'PY'
-import re
+# Prints "x y" for the centre of the first node matching a Python regex in a fresh UI dump, or nothing.
+find_in_ui() {
+  adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 || return 0
+  adb pull /sdcard/ui.xml /tmp/ui.xml > /dev/null 2>&1 || return 0
+  python3 -c '
+import re, sys
 xml = open("/tmp/ui.xml", encoding="utf-8").read()
-for node in re.finditer(r'<node [^>]*class="android.widget.EditText"[^>]*>', xml):
-    m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node.group(0))
+for node in re.finditer(sys.argv[1], xml):
+    m = re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", node.group(0))
     if m:
         x1, y1, x2, y2 = map(int, m.groups())
         print((x1 + x2) // 2, (y1 + y2) // 2)
         break
-PY
-)
+' "$1"
+}
+
+focus_text_field() {
+  adb shell am start -W -n "$PACKAGE/.settings.SettingsActivity" > /dev/null
+  local center="" wait_button
+  # A cold emulator can take a while to draw the screen, or show an "isn't responding" dialog.
+  for _ in $(seq 1 15); do
+    sleep 2
+    center=$(find_in_ui '<node [^>]*class="android.widget.EditText"[^>]*>')
+    [[ -n "$center" ]] && break
+    wait_button=$(find_in_ui '<node [^>]*resource-id="android:id/aerr_wait"[^>]*>')
+    # shellcheck disable=SC2086
+    if [[ -n "$wait_button" ]]; then adb shell input tap $wait_button; fi
+  done
   if [[ -z "$center" ]]; then
-    echo "text field not found" >&2
+    echo "text field not found; the screen showed:" >&2
+    grep -o 'text="[^"]*"' /tmp/ui.xml | head -40 >&2 || true
     return 1
   fi
   # shellcheck disable=SC2086

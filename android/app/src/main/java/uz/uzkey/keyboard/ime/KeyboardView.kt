@@ -509,7 +509,10 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             }
             MotionEvent.ACTION_MOVE -> {
                 for (index in 0 until event.pointerCount) {
-                    pointerMove(event.getPointerId(index), event.getX(index), event.getY(index))
+                    val id = event.getPointerId(index)
+                    // Fast swipes arrive batched; the historical samples keep the corners of the gesture path.
+                    for (h in 0 until event.historySize) pointerMove(id, event.getHistoricalX(index, h), event.getHistoricalY(index, h))
+                    pointerMove(id, event.getX(index), event.getY(index))
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
