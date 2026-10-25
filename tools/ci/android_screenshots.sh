@@ -102,8 +102,22 @@ capture() {
   select_ime
   focus_text_field
   if [[ -n "$text" ]]; then
-    adb shell input text "$text"
-    sleep 2
+    local expected="${text//%s/ }" typed=""
+    # Text injected while the freshly restarted keyboard is still binding can be dropped; check and retry.
+    for _ in 1 2 3; do
+      adb shell input text "$text"
+      sleep 2
+      typed=$(find_in_ui "<node [^>]*text=\"${expected}\"[^>]*class=\"android.widget.EditText\"[^>]*>")
+      [[ -n "$typed" ]] && break
+      focus_text_field
+      # Clear whatever part of the text did arrive: move to the end, then delete.
+      # shellcheck disable=SC2046
+      adb shell input keyevent 123 $(printf '67 %.0s' $(seq 1 40))
+    done
+    if [[ -z "$typed" ]]; then
+      echo "text \"$expected\" did not reach the field" >&2
+      return 1
+    fi
   fi
   local current
   current=$(adb shell settings get secure default_input_method | tr -d '\r')
