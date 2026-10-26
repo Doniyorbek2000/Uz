@@ -42,7 +42,11 @@ jobs:
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          set -euo pipefail
+          # Rebuild the PEM so a secret pasted from Windows (CRLF), on one line or without the BEGIN/END lines still works.
+          body=$(printf '%s' "$ASC_KEY_P8" | sed -e 's/-----[A-Z ]*-----//g' | tr -d ' \t\r\n')
+          { echo "-----BEGIN PRIVATE KEY-----"; printf '%s' "$body" | fold -w 64; echo; echo "-----END PRIVATE KEY-----"; } > "$RUNNER_TEMP/AuthKey.p8"
+          openssl pkey -in "$RUNNER_TEMP/AuthKey.p8" -noout || { echo "::error::ASC_KEY_P8 is not a valid .p8 private key"; exit 1; }
           echo "ASC_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
 
       - name: Archive
