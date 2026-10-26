@@ -32,6 +32,15 @@ jobs:
             if [ -z "${!name}" ]; then echo "::error::Repository secret $name is missing"; exit 1; fi
           done
 
+      - name: Select Xcode 26
+        # App Store Connect rejects builds made with an SDK older than iOS 26.
+        run: |
+          set -euo pipefail
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$XCODE" ] || { echo "::error::No Xcode 26 on this runner"; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
