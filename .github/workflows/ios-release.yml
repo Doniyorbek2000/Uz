@@ -55,13 +55,20 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -euo pipefail
+          # Automatic signing would want a development profile, which needs a registered device (the team has none).
+          # So archive ad-hoc signed (keeps the App Group entitlements in the binaries) and let the export step
+          # re-sign for the App Store with a cloud-managed distribution certificate.
           # App Store Connect needs a higher build number for every upload.
           xcodebuild archive -project UzKey.xcodeproj -scheme UzKey -configuration Release \
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/UzKey.xcarchive" \
-            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO \
+            PROVISIONING_PROFILE_SPECIFIER= CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             > "$RUNNER_TEMP/archive.log" 2>&1 || { grep -E "error:|warning: .*sign" "$RUNNER_TEMP/archive.log" | tail -60; tail -40 "$RUNNER_TEMP/archive.log"; exit 1; }
+          APP="$RUNNER_TEMP/UzKey.xcarchive/Products/Applications/UzKey.app"
+          for bundle in "$APP" "$APP/PlugIns/UzKeyKeyboard.appex"; do
+            echo "== $(basename "$bundle") entitlements"
+            codesign -d --entitlements - "$bundle" 2>/dev/null | grep -A3 application-groups || { echo "::error::$bundle lost its App Group entitlement"; exit 1; }
+          done
 
       - name: Upload to App Store Connect
         env:
