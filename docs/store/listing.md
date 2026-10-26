@@ -7,7 +7,7 @@ App Store name 30, subtitle 30, keywords 100, description 4000 characters.
 |---|---|
 | Category | Play: Tools · App Store: Utilities |
 | Content rating | Everyone / 4+ (no user-generated content, no ads, no data collection) |
-| Privacy policy URL | `https://github.com/Doniyorbek2000/Uz/blob/main/PRIVACY.md` (point it at the default branch) |
+| Privacy policy URL | `https://uz.chustone.uz/privacy` (PRIVACY.md rendered to `/var/www/uzkey/privacy.html` on the server) |
 | Play Data safety | No data collected, no data shared; data is not encrypted in transit because nothing is transmitted |
 | App Store privacy label | Data Not Collected |
 | Android package / iOS bundle | `uz.uzkey.keyboard` / `uz.uzkey.app` (+ `uz.uzkey.app.keyboard`) |
@@ -95,6 +95,7 @@ Privacy: UzKey never connects to the internet and never sends what you type anyw
 ## Screenshots
 
 CI renders keyboard screenshots into `docs/screenshots/` on every push (Android emulator and iOS simulator).
-Play needs at least 2 phone screenshots (16:9 or 9:16, 320–3840 px); the `android-*.png` files (1080×2400) qualify.
+Play needs at least 2 phone screenshots with the long side at most twice the short side (320–3840 px). The
+`android-*.png` files (1080×2400) are taller than 2:1, so place them on a 1080×1920 canvas before uploading.
 App Store Connect needs 6.9" (1320×2868) or 6.5" (1284×2778) iPhone screenshots of the full screen — take them on a
 simulator with the keyboard open in Notes; the `ios-*.png` files show only the keyboard view.

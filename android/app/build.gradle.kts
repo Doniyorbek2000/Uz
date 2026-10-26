@@ -11,12 +11,13 @@ val uzkeyVersionCode: Int = (System.getenv("UZKEY_VERSION_CODE") ?: System.geten
 
 android {
     namespace = "uz.uzkey.keyboard"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "uz.uzkey.keyboard"
         minSdk = 26
-        targetSdk = 35
+        // Play requires API 36 for new apps and updates since 2026-08-31
+        targetSdk = 36
         versionCode = uzkeyVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

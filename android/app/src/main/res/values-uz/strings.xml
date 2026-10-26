@@ -46,6 +46,7 @@
     <string name="clear_learned">Örganilgan sözlarni öçiriş</string>
     <string name="clear_learned_done">Örganilgan sözlar öçirildi</string>
     <string name="privacy_title">Maxfiylik</string>
+    <string name="privacy_policy">Maxfiylik siyosati</string>
     <string name="privacy_text">UzKey internetga ulanmaydi: ilovada tarmoq ruxsati yöq. Yozgan hamma narsangiz faqat telefoningizda qoladi.</string>
     <string name="tips_title">Maslahatlar</string>
     <string name="tip_cursor">Kursorni siljitiş uçun böş joy tugmasini suring</string>

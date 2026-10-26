@@ -46,6 +46,7 @@
     <string name="clear_learned">Удалить выученные слова</string>
     <string name="clear_learned_done">Выученные слова удалены</string>
     <string name="privacy_title">Конфиденциальность</string>
+    <string name="privacy_policy">Политика конфиденциальности</string>
     <string name="privacy_text">UzKey не подключается к интернету: у приложения нет доступа к сети. Всё, что вы вводите, остаётся на телефоне.</string>
     <string name="tips_title">Советы</string>
     <string name="tip_cursor">Проведите по пробелу, чтобы двигать курсор</string>

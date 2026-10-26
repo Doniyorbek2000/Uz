@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -178,7 +180,9 @@ private fun SettingsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            // edge-to-edge ignores adjustResize, so keep the try field above the keyboard
+            .imePadding(),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         item { Header() }
@@ -724,5 +728,18 @@ private fun PrivacyCard() {
             Spacer(Modifier.width(12.dp))
             Text(stringResource(R.string.privacy_text), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        // Play requires the policy to be reachable from inside the app; opening a browser needs no INTERNET permission.
+        val uriHandler = LocalUriHandler.current
+        Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+            OutlinedButton(
+                onClick = { runCatching { uriHandler.openUri(PRIVACY_POLICY_URL) } },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.privacy_policy))
+            }
+        }
     }
 }
+
+private const val PRIVACY_POLICY_URL = "https://uz.chustone.uz/privacy"

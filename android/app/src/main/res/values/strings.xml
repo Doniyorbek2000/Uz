@@ -48,6 +48,7 @@
     <string name="clear_learned">Delete learned words</string>
     <string name="clear_learned_done">Learned words deleted</string>
     <string name="privacy_title">Privacy</string>
+    <string name="privacy_policy">Privacy policy</string>
     <string name="privacy_text">UzKey never connects to the internet: the app has no network permission. Everything you type stays on your phone.</string>
     <string name="tips_title">Tips</string>
     <string name="tip_cursor">Slide on the space bar to move the cursor</string>
