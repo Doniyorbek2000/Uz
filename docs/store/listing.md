@@ -97,5 +97,8 @@ Privacy: UzKey never connects to the internet and never sends what you type anyw
 CI renders keyboard screenshots into `docs/screenshots/` on every push (Android emulator and iOS simulator).
 Play needs at least 2 phone screenshots with the long side at most twice the short side (320–3840 px). The
 `android-*.png` files (1080×2400) are taller than 2:1, so place them on a 1080×1920 canvas before uploading.
-App Store Connect needs 6.9" (1320×2868) or 6.5" (1284×2778) iPhone screenshots of the full screen — take them on a
-simulator with the keyboard open in Notes; the `ios-*.png` files show only the keyboard view.
+App Store Connect needs 6.9" (1320×2868) iPhone and 13" (2064×2752) iPad screenshots: run the
+**iOS store screenshots** workflow, which commits them to `docs/store/appstore/`.
+
+App Store Connect rejects emoji and the modifier letters `ʻ` `ʼ` (and `→`) in the description as "invalid characters":
+use `'` and `->` there, and write "the globe key" instead of 🌐.
