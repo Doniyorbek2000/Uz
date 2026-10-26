@@ -63,6 +63,11 @@ jobs:
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/UzKey.xcarchive" \
             DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             > "$RUNNER_TEMP/archive.log" 2>&1 || { grep -E "error:|warning: .*sign" "$RUNNER_TEMP/archive.log" | tail -60; tail -40 "$RUNNER_TEMP/archive.log"; exit 1; }
+          # Export takes entitlements from the archived signatures; an unsigned archive has none, so embed them
+          # with a local ad-hoc signature (inner bundle first). Export replaces it with the distribution signature.
+          APP="$RUNNER_TEMP/UzKey.xcarchive/Products/Applications/UzKey.app"
+          codesign --force --sign - --entitlements Keyboard/UzKeyKeyboard.entitlements "$APP/PlugIns/UzKeyKeyboard.appex"
+          codesign --force --sign - --entitlements App/UzKey.entitlements "$APP"
 
       - name: Upload to App Store Connect
         env:
